@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Pontaj Lunar - Firebase</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, doc, setDoc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
+      authDomain: "pontaj2025.firebaseapp.com",
+      projectId: "pontaj2025",
+      storageBucket: "pontaj2025.firebasestorage.app",
+      messagingSenderId: "732863008010",
+      appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    window.salvareFirebase = async function (nume, zi, valoare, tura) {
+      const data = new Date();
+      const luna = data.getMonth() + 1;
+      const an = data.getFullYear();
+      const lunaStr = (luna < 10 ? '0' : '') + luna;
+      const ziStr = (zi < 10 ? '0' : '') + zi;
+
+      const idDoc = `${nume.replaceAll(' ', '_')}_${an}_${lunaStr}_${ziStr}_tura${tura}`;
+
+      await setDoc(doc(db, "pontaj_lunar", idDoc), {
+        nume: nume,
+        zi: zi,
+        luna: luna,
+        an: an,
+        ora: valoare,
+        tura: tura
+      });
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      margin: 0;
+      padding: 0;
+      background: #f1f5f9;
+    }
+    header {
+      background-color: #003366;
+      color: white;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    header img {
+      height: 30px;
+      margin-left: 10px;
+    }
+    .buttons {
+      text-align: center;
+      margin: 10px;
+    }
+    .buttons button {
+      padding: 5px 15px;
+      margin: 0 10px;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    .scroll-container {
+      overflow-x: auto;
+      margin: 10px;
+    }
+    table {
+      min-width: 1100px;
+      border-collapse: collapse;
+      margin: auto;
+      background: white;
+      font-size: 10px;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      text-align: center;
+      padding: 1px 2px;
+    }
+    th {
+      background-color: #007bff;
+      color: white;
+    }
+    td input {
+      width: 28px;
+      padding: 0px;
+      font-size: 8px;
+      text-align: center;
+      border: 1px solid #ccc;
+      border-radius: 2px;
+    }
+    .total {
+      font-weight: bold;
+      background-color: #e2e8f0;
+    }
+    .hidden {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Pontaj Lunar - August 2025</h1>
+    <img src="sigla.png" alt="Sigla">
+  </header>
+
+  <div class="buttons">
+    <button onclick="schimbaTura('tura1')">Tura 1</button>
+    <button onclick="schimbaTura('tura2')">Tura 2</button>
+  </div>
+
+  <div class="scroll-container">
+    <table id="tura1">
+      <thead>
+        <tr>
+          <th>Nume</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+
+    <table id="tura2" class="hidden">
+      <thead>
+        <tr>
+          <th>Nume</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+  </div>
+
+  <script>
+    const angajatiTura1 = ["Cosmin Stingu", "Dragan Alexandru"];
+    const angajatiTura2 = ["Lotorosanu Alexandru"];
+    const dataCurenta = new Date();
+    const luna = dataCurenta.getMonth();
+    const an = dataCurenta.getFullYear();
+    const zileInLuna = new Date(an, luna + 1, 0).getDate();
+
+    function construiesteTabel(idTabel, angajati, tura) {
+      const table = document.getElementById(idTabel);
+      const theadRow = table.querySelector("thead tr");
+      for (let zi = 1; zi <= zileInLuna; zi++) {
+        const th = document.createElement("th");
+        th.textContent = zi;
+        theadRow.appendChild(th);
+      }
+      const thTotal = document.createElement("th");
+      thTotal.textContent = "Total ore";
+      theadRow.appendChild(thTotal);
+
+      const tbody = table.querySelector("tbody");
+      angajati.forEach(nume => {
+        const tr = document.createElement("tr");
+        const tdNume = document.createElement("td");
+        tdNume.textContent = nume;
+        tr.appendChild(tdNume);
+
+        for (let zi = 1; zi <= zileInLuna; zi++) {
+          const td = document.createElement("td");
+          const input = document.createElement("input");
+          input.placeholder = "hh:mm";
+          input.dataset.nume = nume;
+          input.dataset.zi = zi;
+          input.addEventListener("change", () => {
+            calculeazaTotalOre(tr);
+            window.salvareFirebase(nume, zi, input.value, tura);
+          });
+          td.appendChild(input);
+          tr.appendChild(td);
+        }
+
+        const tdTotal = document.createElement("td");
+        tdTotal.className = "total";
+        tdTotal.textContent = "0h 0m";
+        tr.appendChild(tdTotal);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function schimbaTura(id) {
+      document.getElementById("tura1").classList.add("hidden");
+      document.getElementById("tura2").classList.add("hidden");
+      document.getElementById(id).classList.remove("hidden");
+    }
+
+    function calculeazaTotalOre(tr) {
+      const inputs = tr.querySelectorAll("input");
+      let totalMin = 0;
+      inputs.forEach(input => {
+        const value = input.value.trim();
+        if (value && /^\d{1,2}:\d{2}$/.test(value)) {
+          const [h, m] = value.split(":".replace(".", ":")).map(Number);
+          if (!isNaN(h) && !isNaN(m)) totalMin += h * 60 + m;
+        }
+      });
+      const hTotal = Math.floor(totalMin / 60);
+      const mTotal = totalMin % 60;
+      tr.querySelector(".total").textContent = `${hTotal}h ${mTotal}m`;
+    }
+
+    construiesteTabel("tura1", angajatiTura1, 1);
+    construiesteTabel("tura2", angajatiTura2, 2);
+  </script>
+</body>
+</html>

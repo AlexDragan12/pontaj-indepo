@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <title>Pontaj Admin - Vizualizare</title>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
+      authDomain: "pontaj2025.firebaseapp.com",
+      projectId: "pontaj2025",
+      storageBucket: "pontaj2025.firebasestorage.app",
+      messagingSenderId: "732863008010",
+      appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
+    };
+
+    function construiesteAntet() {
+      const theadRow = document.getElementById("antetTabel");
+      theadRow.innerHTML = "<th>Nume</th><th>Tura</th>";
+      for (let i = 1; i <= 31; i++) {
+        const th = document.createElement("th");
+        th.textContent = i;
+    theadRow.appendChild(th);
+  }
+  const thTotal = document.createElement("th");
+  thTotal.textContent = "Total";
+  theadRow.appendChild(thTotal);
+}
+
+    construiesteAntet();
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    const tbody = document.getElementById("adminTabelBody");
+
+    async function incarcaPontaj() {
+      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
+      const date = {};
+
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const key = `${d.nume}_${d.tura}_${d.luna}`;
+        if (!date[key]) date[key] = { nume: d.nume, tura: d.tura, luna: d.luna, totalMin: 0, zile: {} };
+        date[key].zile[d.zi] = d.ora;
+        const [h, m] = d.ora.split(":".replace(".", ":")).map(Number);
+        if (!isNaN(h) && !isNaN(m)) date[key].totalMin += h * 60 + m;
+      });
+
+      tbody.innerHTML = "";
+      Object.values(date).forEach(p => {
+        const tr = document.createElement("tr");
+        tr.innerHTML = `
+          <td>${p.nume}</td>
+          <td>Tura ${p.tura}</td>
+          ${Array.from({length: 31}, (_, i) => `<td>${p.zile[i+1] || ""}</td>`).join('')}
+          <td>${Math.floor(p.totalMin / 60)}h ${p.totalMin % 60}m</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    document.getElementById("filtruBtn").addEventListener("click", incarcaPontaj);
+
+    window.exportCSV = function () {
+      let csv = "Nume,Tura," + Array.from({length: 31}, (_, i) => i + 1).join(",") + ",Total\n";
+      const rows = document.querySelectorAll("#adminTabelBody tr");
+      rows.forEach(row => {
+        const cells = row.querySelectorAll("td");
+        const values = Array.from(cells).map(td => td.textContent.trim());
+        csv += values.join(",") + "\n";
+      });
+      const blob = new Blob([csv], { type: "text/csv" });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = "pontaj_admin.csv";
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    window.printPDF = function () {
+      window.print();
+    }
+
+    window.adaugaAngajat = async function () {
+      const nume = prompt("Introduceți numele complet al angajatului:");
+      const tura = prompt("Introduceți tura (1 sau 2):");
+      if (!nume || !tura) return alert("Date incomplete.");
+      const docRef = doc(db, "pontaj_lunar", `${nume.replaceAll(' ', '_')}_${new Date().getFullYear()}_init_tura${tura}`);
+      await setDoc(docRef, {
+        nume: nume,
+        zi: 0,
+        luna: 0,
+        an: new Date().getFullYear(),
+        ora: "00:00",
+        tura: Number(tura)
+      });
+      alert("Angajat adăugat. Reîncarcă pagina pentru a-l vedea.");
+    }
+
+    window.stergeAngajat = async function () {
+      const nume = prompt("Introduceți numele complet al angajatului de șters:");
+      if (!nume) return;
+      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
+      const toDelete = snapshot.docs.filter(doc => doc.data().nume === nume);
+      for (const d of toDelete) {
+        await deleteDoc(d.ref);
+      }
+      alert(`Angajatul '${nume}' a fost șters.`);
+      incarcaPontaj();
+    }
+
+    window.editeazaAngajat = async function () {
+      const numeVechi = prompt("Introduceți numele complet al angajatului de modificat:");
+      if (!numeVechi) return;
+      const numeNou = prompt("Introduceți noul nume (sau apăsați OK pentru a nu-l schimba):", numeVechi);
+      const turaNoua = prompt("Introduceți noua tură (1 sau 2, sau apăsați OK pentru a nu o schimba):");
+
+      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
+      const deEditat = snapshot.docs.filter(doc => doc.data().nume === numeVechi);
+
+      if (deEditat.length === 0) return alert("Niciun angajat găsit cu acest nume.");
+
+      for (const d of deEditat) {
+        const data = d.data();
+        const newNume = numeNou || data.nume;
+        const newTura = turaNoua ? Number(turaNoua) : data.tura;
+        await setDoc(doc(db, "pontaj_lunar", `${newNume.replaceAll(' ', '_')}_${data.an}_${data.luna}_${data.zi}_tura${newTura}`), {
+          ...data,
+          nume: newNume,
+          tura: newTura
+        });
+        await deleteDoc(d.ref);
+      }
+      alert("Datele angajatului au fost actualizate.");
+      incarcaPontaj();
+    }
+
+    incarcaPontaj();
+
+  </script>
+  <style>
+    body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #f0f4f8; }
+    header { background: linear-gradient(to right, #0066cc, #003366); color: white; padding: 12px; text-align: center; font-family: 'Trebuchet MS', sans-serif; }
+    .toolbar { text-align: center; margin: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
+    .toolbar select, .toolbar input { padding: 6px; font-size: 13px; border-radius: 5px; border: 1px solid #ccc; }
+    .toolbar button { padding: 7px 14px; font-size: 13px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; transition: background 0.2s; }
+    .toolbar button:hover { background: #0056b3; }
+    table { border-collapse: collapse; width: 100%; font-size: 11px; background: white; margin: 20px auto; border-radius: 8px; overflow: hidden; }
+    th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
+    th { background-color: #007bff; color: white; position: sticky; top: 0; z-index: 2; }
+    thead th:first-child, thead th:nth-child(2) { position: sticky; left: 0; background: #0066cc; z-index: 3; }
+    tbody td:first-child, tbody td:nth-child(2) { position: sticky; left: 0; background: #e6f0ff; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <header>
+    <img src="sigla.png" alt="Sigla">
+    <h1>Pontaj Complet - Administrator</h1>
+  </header>
+  <div class="toolbar">
+    <label>Luna:
+      <select id="filtruLuna">
+        <option value="">Toate</option>
+        <option value="1">Ianuarie</option>
+        <option value="2">Februarie</option>
+        <option value="3">Martie</option>
+        <option value="4">Aprilie</option>
+        <option value="5">Mai</option>
+        <option value="6">Iunie</option>
+        <option value="7">Iulie</option>
+        <option value="8">August</option>
+        <option value="9">Septembrie</option>
+        <option value="10">Octombrie</option>
+        <option value="11">Noiembrie</option>
+        <option value="12">Decembrie</option>
+      </select>
+    </label>
+    <label>Tura:
+      <select id="filtruTura">
+        <option value="">Toate</option>
+        <option value="Tura 1">Tura 1</option>
+        <option value="Tura 2">Tura 2</option>
+      </select>
+    </label>
+    <label>Nume:
+      <input type="text" id="filtruNume" placeholder="Filtru nume">
+    </label>
+    <button id="filtruBtn">Aplică filtre</button>
+    <button onclick="exportCSV()">Exportă CSV</button>
+    <button onclick="printPDF()">Exportă PDF</button>
+    <button onclick="adaugaAngajat()">Adaugă Angajat</button>
+    <button onclick="stergeAngajat()">Șterge Angajat</button>
+    <button onclick="editeazaAngajat()">Editează Angajat</button>
+  </div>
+  <div class="scroll-container">
+    <table>
+      <thead>
+  <tr id="antetTabel"></tr>
+      </thead>
+      <tbody id="adminTabelBody">
+        <!-- Datele vor fi încărcate aici din Firestore -->
+      </tbody>
+    </table>
+  </div>
+</body>
+</html>
