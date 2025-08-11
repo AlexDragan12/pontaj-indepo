@@ -56,6 +56,32 @@
     .total{font-weight:700;background:#112b40}
 
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
+    /* ===== Print: doar tabelul de pontaj, fara UI ===== */
+@media print {
+  @page { size: A4 landscape; margin: 10mm; }
+  body { background:#fff; color:#000; }
+  header, .tabs, .toolbar, .section-title,
+  button, select, input { display: none !important; }
+  #admin { display: none !important; }
+  #lunar { display: block !important; }
+  .wrap { padding: 0 !important; }
+  .card { border: none !important; padding: 0 !important; }
+  .scroll-x { overflow: visible !important; }
+  table { width: 100% !important; border-collapse: collapse !important; }
+  th, td {
+    border: 1px solid #000 !important;
+    background: #fff !important;
+    color: #000 !important;
+    position: static !important;
+  }
+  th {
+    background: #eee !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  td.name { font-weight: 700 !important; background: #fff !important; }
+}
+
   </style>
 </head>
 <body>
@@ -433,3 +459,4 @@
   </script>
 </body>
 </html>
+
