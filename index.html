@@ -19,7 +19,7 @@
     header img{height:36px}
     header h1{margin:0;font-size:18px;letter-spacing:.3px}
 
-    .print-header{display:none} /* ascuns pe ecran, vizibil doar la print */
+    .print-header{display:none} /* vizibil doar la print */
 
     .toolbar,.tabs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px}
     .toolbar{
@@ -58,6 +58,11 @@
     .total{font-weight:700;background:#112b40}
 
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
+
+    /* ===== Coduri speciale (CO / N / FP) stilizare pe ecran ===== */
+    .cod-CO input{ background:#e8f7e8 !important; border-color:#9ed39e !important; color:#0f3d0f !important; }
+    .cod-N  input{ background:#ffeaea !important; border-color:#f5a5a5 !important; color:#651010 !important; }
+    .cod-FP input{ background:#fff8e6 !important; border-color:#f1d28a !important; color:#5a4100 !important; }
 
     /* ===== Print: doar tabelul + antet cu siglă ===== */
     @media print {
@@ -106,6 +111,11 @@
       }
       td.name { font-weight: 700 !important; }
       td.total, th:last-child { font-weight: 700 !important; }
+
+      /* contur subtil pt. codurile speciale la print */
+      .cod-CO td { border:1px solid #0a0 !important; }
+      .cod-N  td { border:1px solid #a00 !important; }
+      .cod-FP td { border:1px solid #aa8800 !important; }
 
       /* evită tăieri urâte */
       tr { break-inside: avoid; page-break-inside: avoid; }
@@ -261,8 +271,6 @@
     }
 
     function buildHeadLunar(elHead){
-      // reset (asigurăm doar o dată Nume + zile + Total)
-      // adaugă coloanele 1..zile + Total
       for(let zi=1; zi<=zileInLuna; zi++){
         const th=document.createElement("th");
         th.textContent = zi;
@@ -286,11 +294,26 @@
           const td=document.createElement("td");
           const inp=document.createElement("input");
           inp.type="text"; inp.placeholder="hh:mm";
+          inp.setAttribute("list","coduriPontaj"); // autocomplete pentru CO/N/FP
           inp.dataset.nume=nume; inp.dataset.zi=zi; inp.dataset.tura=tura;
+
+          // functie de marcare vizuala in functie de valoare
+          const markCode = (val)=>{
+            td.classList.remove("cod-CO","cod-N","cod-FP");
+            if (val === "CO") td.classList.add("cod-CO");
+            if (val === "N")  td.classList.add("cod-N");
+            if (val === "FP") td.classList.add("cod-FP");
+          };
+
+          inp.addEventListener("input", ()=> markCode(inp.value.trim().toUpperCase()));
           inp.addEventListener("change", async ()=>{
+            // normalizam: acceptam si "co"/"Co" etc.
+            inp.value = inp.value.trim().toUpperCase();
+            markCode(inp.value);
             calcTotalRow(tr);
             await setPontajFirebase(nume, zi, inp.value, tura);
           });
+
           td.appendChild(inp);
           tr.appendChild(td);
         }
@@ -307,7 +330,9 @@
       const inputs = tr.querySelectorAll("input");
       let totalMin=0;
       inputs.forEach(i=>{
-        const v = (i.value||"").trim();
+        const v = (i.value||"").trim().toUpperCase();
+        // coduri speciale nu se aduna
+        if (v==="CO" || v==="N" || v==="FP") return;
         if(/^\d{1,2}:\d{2}$/.test(v)){
           const [h,m] = v.split(":").map(Number);
           if(!isNaN(h) && !isNaN(m)) totalMin += h*60+m;
@@ -398,8 +423,16 @@
         const key = `${d.nume}_${d.tura}_${d.luna}`;
         if(!map[key]) map[key] = {nume:d.nume, tura:d.tura, luna:d.luna, totalMin:0, zile:{}};
         map[key].zile[d.zi] = d.ora || "";
-        const [h,m] = String(d.ora||"").split(":").map(Number);
-        if(!isNaN(h)&&!isNaN(m)) map[key].totalMin += h*60+m;
+
+        // totalul: ignoră CO / N / FP
+        const v = String(d.ora||"").trim().toUpperCase();
+        if(v!=="CO" && v!=="N" && v!=="FP"){
+          const mm = v.match(/^(\d{1,2}):(\d{2})$/);
+          if (mm){
+            const h = Number(mm[1]), m = Number(mm[2]);
+            if(!isNaN(h)&&!isNaN(m)) map[key].totalMin += h*60+m;
+          }
+        }
       });
 
       adminBody.innerHTML="";
@@ -421,22 +454,18 @@
 
     filtruBtn.addEventListener("click", incarcaAdmin);
 
-    // ===== Export CSV îmbunătățit: adaugă meta-informații (nu poate include logo / stiluri) =====
+    // ===== Export CSV îmbunătățit: meta-informații (nu poate include logo/stiluri) =====
     window.exportCSV = function(){
       const now = new Date();
       const turaVizibila = document.getElementById("tura2").style.display === "none" ? "Tura 1" : "Tura 2";
       const titlu = `Raport pontaj – ${luniRO[lunaIdx]} ${anCurent} (${turaVizibila})`;
       const generatLa = `Generat la, ${now.toLocaleString("ro-RO")}`;
 
-      // antet tabel
       const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
-
-      // rânduri tabel
       const rows = [...document.querySelectorAll("#admin_body tr")].map(tr =>
         [...tr.querySelectorAll("td")].map(td => td.textContent.replaceAll(","," ").trim())
       );
 
-      // construim CSV cu două rânduri meta, un rând gol, apoi tabelul
       const lines = [];
       lines.push(titlu);
       lines.push(generatLa);
@@ -530,5 +559,12 @@
     };
 
   </script>
+
+  <!-- Sugestii pentru coduri speciale CO / N / FP -->
+  <datalist id="coduriPontaj">
+    <option value="CO" label="Concediu"></option>
+    <option value="N"  label="Nemotivat"></option>
+    <option value="FP" label="Fără plată"></option>
+  </datalist>
 </body>
 </html>
