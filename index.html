@@ -19,6 +19,8 @@
     header img{height:36px}
     header h1{margin:0;font-size:18px;letter-spacing:.3px}
 
+    .print-header{display:none} /* ascuns pe ecran, vizibil doar la print */
+
     .toolbar,.tabs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px}
     .toolbar{
       background:rgba(255,255,255,.03);border-top:1px solid #0f2536;border-bottom:1px solid #0f2536
@@ -56,32 +58,58 @@
     .total{font-weight:700;background:#112b40}
 
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
-    /* ===== Print: doar tabelul de pontaj, fara UI ===== */
-@media print {
-  @page { size: A4 landscape; margin: 10mm; }
-  body { background:#fff; color:#000; }
-  header, .tabs, .toolbar, .section-title,
-  button, select, input { display: none !important; }
-  #admin { display: none !important; }
-  #lunar { display: block !important; }
-  .wrap { padding: 0 !important; }
-  .card { border: none !important; padding: 0 !important; }
-  .scroll-x { overflow: visible !important; }
-  table { width: 100% !important; border-collapse: collapse !important; }
-  th, td {
-    border: 1px solid #000 !important;
-    background: #fff !important;
-    color: #000 !important;
-    position: static !important;
-  }
-  th {
-    background: #eee !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-  td.name { font-weight: 700 !important; background: #fff !important; }
-}
 
+    /* ===== Print: doar tabelul + antet cu siglă ===== */
+    @media print {
+      @page { size: A4 landscape; margin: 10mm; }
+      body { background:#fff; color:#000; }
+
+      /* ascunde UI */
+      header, .tabs, .toolbar, .section-title,
+      button, select, input { display: none !important; }
+
+      /* arată doar tabul de pontaj lunar (raportul) */
+      #admin { display: none !important; }
+      #lunar { display: block !important; }
+
+      /* antetul PDF cu siglă */
+      .print-header {
+        display: flex !important;
+        align-items: center;
+        gap: 12px;
+        margin: 0 16px 10px 16px;
+        padding-bottom: 6px;
+        border-bottom: 2px solid #000;
+      }
+      .print-header img { height: 28px; }
+      .print-header h2 { margin:0; font-size:16px; color:#000; }
+      .print-header small { font-weight: normal; font-size: 12px; }
+
+      /* tabel stilizat pentru tipar */
+      .wrap { padding: 0 !important; }
+      .card { border: none !important; padding: 0 !important; }
+      .scroll-x { overflow: visible !important; }
+
+      table { width: 100% !important; border-collapse: collapse !important; }
+      th, td {
+        border: 1px solid #000 !important;
+        background: #fff !important;
+        color: #000 !important;
+        position: static !important;
+        padding: 5px 6px !important;
+        font-size: 11px !important;
+      }
+      th {
+        background: #f0f0f0 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      td.name { font-weight: 700 !important; }
+      td.total, th:last-child { font-weight: 700 !important; }
+
+      /* evită tăieri urâte */
+      tr { break-inside: avoid; page-break-inside: avoid; }
+    }
   </style>
 </head>
 <body>
@@ -89,6 +117,15 @@
     <img src="sigla.png" alt="Sigla" />
     <h1>Pontaj – Lunar & Admin</h1>
   </header>
+
+  <!-- Antet DOAR pentru PDF -->
+  <div class="print-header">
+    <img src="sigla.png" alt="Sigla" />
+    <div>
+      <h2>Raport pontaj – <span id="printMonth"></span> <small>(<span id="printTura"></span>)</small></h2>
+      <p style="margin:4px 0 0; opacity:.8">Generat la: <span id="printNow"></span></p>
+    </div>
+  </div>
 
   <!-- Tabs -->
   <div class="tabs">
@@ -210,7 +247,21 @@
     const anCurent = today.getFullYear();
     const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
 
+    // Luni în RO pentru antet PDF / CSV
+    const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
+
+    // Elemente antet print
+    const printMonthEl = document.getElementById("printMonth");
+    const printTuraEl  = document.getElementById("printTura");
+    const printNowEl   = document.getElementById("printNow");
+    if (printMonthEl) {
+      printMonthEl.textContent = `${luniRO[lunaIdx]} ${anCurent}`;
+      printTuraEl.textContent  = "Tura 1"; // implicit
+      printNowEl.textContent   = new Date().toLocaleString("ro-RO");
+    }
+
     function buildHeadLunar(elHead){
+      // reset (asigurăm doar o dată Nume + zile + Total)
       // adaugă coloanele 1..zile + Total
       for(let zi=1; zi<=zileInLuna; zi++){
         const th=document.createElement("th");
@@ -275,10 +326,15 @@
       });
     }
 
-    window.switchTura = (id)=>{
+    // comutare tura + actualizare antet print
+    const _switchTuraBase = (id)=>{
       document.getElementById("tura1").style.display="none";
       document.getElementById("tura2").style.display="none";
       document.getElementById(id).style.display="";
+    };
+    window.switchTura = (id)=>{
+      _switchTuraBase(id);
+      if (printTuraEl) printTuraEl.textContent = (id === "tura1") ? "Tura 1" : "Tura 2";
     };
 
     // încarcă angajații din colecția `angajati` și construiește tabelele Lunar
@@ -365,17 +421,34 @@
 
     filtruBtn.addEventListener("click", incarcaAdmin);
 
-    // Export CSV (din tabelul Admin)
+    // ===== Export CSV îmbunătățit: adaugă meta-informații (nu poate include logo / stiluri) =====
     window.exportCSV = function(){
+      const now = new Date();
+      const turaVizibila = document.getElementById("tura2").style.display === "none" ? "Tura 1" : "Tura 2";
+      const titlu = `Raport pontaj – ${luniRO[lunaIdx]} ${anCurent} (${turaVizibila})`;
+      const generatLa = `Generat la, ${now.toLocaleString("ro-RO")}`;
+
+      // antet tabel
+      const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
+
+      // rânduri tabel
       const rows = [...document.querySelectorAll("#admin_body tr")].map(tr =>
         [...tr.querySelectorAll("td")].map(td => td.textContent.replaceAll(","," ").trim())
       );
-      const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
-      let csv = [head, ...rows].map(r=>r.join(",")).join("\n");
-      const blob = new Blob([csv], {type:"text/csv"});
+
+      // construim CSV cu două rânduri meta, un rând gol, apoi tabelul
+      const lines = [];
+      lines.push(titlu);
+      lines.push(generatLa);
+      lines.push(""); // rând gol
+      lines.push(head.join(","));
+      rows.forEach(r=>lines.push(r.join(",")));
+
+      const csv = lines.join("\n");
+      const blob = new Blob([csv], {type:"text/csv;charset=utf-8"});
       const a=document.createElement("a");
       a.href=URL.createObjectURL(blob);
-      a.download="pontaj_admin.csv";
+      a.download=`pontaj_admin_${anCurent}_${String(lunaNum).padStart(2,"0")}.csv`;
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     };
 
@@ -459,4 +532,3 @@
   </script>
 </body>
 </html>
-
