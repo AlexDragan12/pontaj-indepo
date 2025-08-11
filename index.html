@@ -1,12 +1,157 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
-  <meta charset="UTF-8">
-  <title>Pontaj Admin - Vizualizare</title>
+  <meta charset="UTF-8" />
+  <title>Pontaj – Lunar & Admin (unificat)</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#0d1b2a; --card:#1b263b; --muted:#415a77; --accent:#00bcd4; --accent2:#ff0055;
+      --text:#eef2f6; --thead:#0f3554; --thead2:#007acc; --border:#2e3b55;
+    }
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+    header{
+      display:flex;align-items:center;gap:12px;justify-content:center;
+      padding:14px 18px;background:linear-gradient(90deg,#003566 0%, #0b3d5c 100%);
+      border-bottom:1px solid #09314d
+    }
+    header img{height:36px}
+    header h1{margin:0;font-size:18px;letter-spacing:.3px}
+
+    .toolbar,.tabs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px}
+    .toolbar{
+      background:rgba(255,255,255,.03);border-top:1px solid #0f2536;border-bottom:1px solid #0f2536
+    }
+    select,input,button{
+      padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:#102338;color:var(--text)
+    }
+    button{background:var(--accent);border:none;color:#04202e;font-weight:600;cursor:pointer}
+    button.secondary{background:#14324a;color:var(--text);border:1px solid var(--border)}
+    button.danger{background:#d9534f;color:#fff;border:none}
+    button.tab{background:#14324a}
+    .tab.active{background:var(--accent2);color:#fff}
+
+    .wrap{padding:16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+
+    .tab-content{display:none}
+    .tab-content.active{display:block}
+
+    .scroll-x{overflow-x:auto}
+
+    table{width:100%;border-collapse:collapse;background:#0f2133;border-radius:12px;overflow:hidden}
+    th,td{border:1px solid #12314a;text-align:center}
+    th{position:sticky;top:0;background:var(--thead2);color:#fff;font-weight:600}
+    td{background:#0d2032}
+    td:first-child, th:first-child{position:sticky;left:0;background:#0f3554;z-index:1}
+    td.name{background:#123; font-weight:600}
+
+    /* Celule compacte pentru luna întreagă pe ecran */
+    th,td{padding:6px;font-size:11px}
+    input[type="text"]{
+      width:46px;min-width:46px;text-align:center;font-size:11px;
+      background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:3px 4px
+    }
+    .total{font-weight:700;background:#112b40}
+
+    .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
+  </style>
+</head>
+<body>
+  <header>
+    <img src="sigla.png" alt="Sigla" />
+    <h1>Pontaj – Lunar & Admin</h1>
+  </header>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" data-tab="lunar">Pontaj Lunar</button>
+    <button class="tab" data-tab="admin">Raport & Management</button>
+  </div>
+
+  <div class="wrap">
+
+    <!-- ========= PONTAJ LUNAR ========= -->
+    <section id="lunar" class="tab-content active">
+      <div class="card">
+        <h3 class="section-title">Ture</h3>
+        <div class="toolbar" style="justify-content:flex-start">
+          <button class="secondary" onclick="switchTura('tura1')">Tura 1</button>
+          <button class="secondary" onclick="switchTura('tura2')">Tura 2</button>
+        </div>
+
+        <div class="scroll-x">
+          <table id="tura1">
+            <thead><tr id="tura1_head"><th>Nume</th></tr></thead>
+            <tbody id="tura1_body"></tbody>
+          </table>
+
+          <table id="tura2" style="display:none;margin-top:14px">
+            <thead><tr id="tura2_head"><th>Nume</th></tr></thead>
+            <tbody id="tura2_body"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ========= ADMIN ========= -->
+    <section id="admin" class="tab-content">
+      <div class="card">
+        <h3 class="section-title">Filtre & Export</h3>
+        <div class="toolbar">
+          <label>Luna
+            <select id="filtruLuna">
+              <option value="">Toate</option>
+              <option value="1">Ianuarie</option><option value="2">Februarie</option>
+              <option value="3">Martie</option><option value="4">Aprilie</option>
+              <option value="5">Mai</option><option value="6">Iunie</option>
+              <option value="7">Iulie</option><option value="8">August</option>
+              <option value="9">Septembrie</option><option value="10">Octombrie</option>
+              <option value="11">Noiembrie</option><option value="12">Decembrie</option>
+            </select>
+          </label>
+          <label>Tura
+            <select id="filtruTura">
+              <option value="">Toate</option>
+              <option value="1">Tura 1</option>
+              <option value="2">Tura 2</option>
+            </select>
+          </label>
+          <input id="filtruNume" type="text" placeholder="Filtru nume" />
+          <button id="filtruBtn">Aplică filtre</button>
+          <button onclick="exportCSV()">Export CSV</button>
+          <button onclick="window.print()">Export PDF</button>
+        </div>
+
+        <h3 class="section-title">Management angajați</h3>
+        <div class="toolbar">
+          <button onclick="adaugaAngajat()">Adaugă</button>
+          <button onclick="editeazaAngajat()">Editează</button>
+          <button class="danger" onclick="stergeAngajat()">Șterge</button>
+        </div>
+
+        <div class="scroll-x">
+          <table>
+            <thead>
+              <tr id="admin_head">
+                <!-- construit dinamic: Nume | Tura | 1..31 | Total -->
+              </tr>
+            </thead>
+            <tbody id="admin_body"><tr><td>Se încarcă…</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </div>
+
+  <!-- ========== SCRIPT APLICAȚIE (Firebase unic + ambele module) ========== -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
     import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
+    // ---------- CONFIG FIREBASE ----------
     const firebaseConfig = {
       apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
       authDomain: "pontaj2025.firebaseapp.com",
@@ -15,197 +160,234 @@
       messagingSenderId: "732863008010",
       appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
     };
-
-    function construiesteAntet() {
-      const theadRow = document.getElementById("antetTabel");
-      theadRow.innerHTML = "<th>Nume</th><th>Tura</th>";
-      for (let i = 1; i <= 31; i++) {
-        const th = document.createElement("th");
-        th.textContent = i;
-    theadRow.appendChild(th);
-  }
-  const thTotal = document.createElement("th");
-  thTotal.textContent = "Total";
-  theadRow.appendChild(thTotal);
-}
-
-    construiesteAntet();
-
     const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    const db  = getFirestore(app);
 
-    const tbody = document.getElementById("adminTabelBody");
-
-    async function incarcaPontaj() {
-      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
-      const date = {};
-
-      snapshot.forEach(doc => {
-        const d = doc.data();
-        const key = `${d.nume}_${d.tura}_${d.luna}`;
-        if (!date[key]) date[key] = { nume: d.nume, tura: d.tura, luna: d.luna, totalMin: 0, zile: {} };
-        date[key].zile[d.zi] = d.ora;
-        const [h, m] = d.ora.split(":".replace(".", ":")).map(Number);
-        if (!isNaN(h) && !isNaN(m)) date[key].totalMin += h * 60 + m;
+    // ---------- TAB SWITCH ----------
+    document.querySelectorAll(".tab").forEach(b=>{
+      b.addEventListener("click",()=>{
+        document.querySelectorAll(".tab").forEach(x=>x.classList.remove("active"));
+        document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
+        b.classList.add("active");
+        document.getElementById(b.dataset.tab).classList.add("active");
+        // Refresh admin table la deschidere
+        if(b.dataset.tab === "admin") incarcaAdmin();
       });
+    });
 
+    // =========================================================
+    // ===============    PONTAJ LUNAR (Ture)    ===============
+    // =========================================================
+    const angajatiTura1 = ["Cosmin Stingu", "Dragan Alexandru"];
+    const angajatiTura2 = ["Lotorosanu Alexandru"];
+
+    const today = new Date();
+    const lunaIdx = today.getMonth();         // 0..11
+    const lunaNum = lunaIdx + 1;              // 1..12
+    const anCurent = today.getFullYear();
+    const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
+
+    function buildHeadLunar(elHead){
+      // adaugă coloanele 1..zile + Total
+      for(let zi=1; zi<=zileInLuna; zi++){
+        const th=document.createElement("th");
+        th.textContent = zi;
+        elHead.appendChild(th);
+      }
+      const thT=document.createElement("th");
+      thT.textContent="Total ore";
+      elHead.appendChild(thT);
+    }
+
+    function buildBodyLunar(tbody, listaNume, tura){
       tbody.innerHTML = "";
-      Object.values(date).forEach(p => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `
-          <td>${p.nume}</td>
-          <td>Tura ${p.tura}</td>
-          ${Array.from({length: 31}, (_, i) => `<td>${p.zile[i+1] || ""}</td>`).join('')}
-          <td>${Math.floor(p.totalMin / 60)}h ${p.totalMin % 60}m</td>
-        `;
+      listaNume.forEach(nume=>{
+        const tr=document.createElement("tr");
+        const tdN=document.createElement("td");
+        tdN.className="name";
+        tdN.textContent=nume;
+        tr.appendChild(tdN);
+
+        for(let zi=1; zi<=zileInLuna; zi++){
+          const td=document.createElement("td");
+          const inp=document.createElement("input");
+          inp.type="text"; inp.placeholder="hh:mm";
+          inp.dataset.nume=nume; inp.dataset.zi=zi; inp.dataset.tura=tura;
+          inp.addEventListener("change", async ()=>{
+            // calculează total
+            calcTotalRow(tr);
+            // salvează în Firestore
+            await setPontajFirebase(nume, zi, inp.value, tura);
+          });
+          td.appendChild(inp);
+          tr.appendChild(td);
+        }
+
+        const tdTot=document.createElement("td");
+        tdTot.className="total"; tdTot.textContent="0h 0m";
+        tr.appendChild(tdTot);
+
         tbody.appendChild(tr);
       });
     }
 
-    document.getElementById("filtruBtn").addEventListener("click", incarcaPontaj);
-
-    window.exportCSV = function () {
-      let csv = "Nume,Tura," + Array.from({length: 31}, (_, i) => i + 1).join(",") + ",Total\n";
-      const rows = document.querySelectorAll("#adminTabelBody tr");
-      rows.forEach(row => {
-        const cells = row.querySelectorAll("td");
-        const values = Array.from(cells).map(td => td.textContent.trim());
-        csv += values.join(",") + "\n";
+    function calcTotalRow(tr){
+      const inputs = tr.querySelectorAll("input");
+      let totalMin=0;
+      inputs.forEach(i=>{
+        const v = (i.value||"").trim();
+        if(/^\d{1,2}:\d{2}$/.test(v)){
+          const [h,m] = v.split(":").map(Number);
+          if(!isNaN(h) && !isNaN(m)) totalMin += h*60+m;
+        }
       });
-      const blob = new Blob([csv], { type: "text/csv" });
-      const link = document.createElement("a");
-      link.href = URL.createObjectURL(blob);
-      link.download = "pontaj_admin.csv";
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+      const H = Math.floor(totalMin/60), M = totalMin%60;
+      tr.querySelector(".total").textContent = `${H}h ${M}m`;
     }
 
-    window.printPDF = function () {
-      window.print();
-    }
-
-    window.adaugaAngajat = async function () {
-      const nume = prompt("Introduceți numele complet al angajatului:");
-      const tura = prompt("Introduceți tura (1 sau 2):");
-      if (!nume || !tura) return alert("Date incomplete.");
-      const docRef = doc(db, "pontaj_lunar", `${nume.replaceAll(' ', '_')}_${new Date().getFullYear()}_init_tura${tura}`);
-      await setDoc(docRef, {
-        nume: nume,
-        zi: 0,
-        luna: 0,
-        an: new Date().getFullYear(),
-        ora: "00:00",
-        tura: Number(tura)
+    async function setPontajFirebase(nume, zi, ora, tura){
+      const lunaStr = String(lunaNum).padStart(2,"0");
+      const ziStr   = String(zi).padStart(2,"0");
+      const idDoc = `${nume.replaceAll(' ','_')}_${anCurent}_${lunaStr}_${ziStr}_tura${tura}`;
+      await setDoc(doc(db,"pontaj_lunar",idDoc),{
+        nume:nume, zi:zi, luna:lunaNum, an:anCurent, ora:ora, tura:tura
       });
-      alert("Angajat adăugat. Reîncarcă pagina pentru a-l vedea.");
     }
 
-    window.stergeAngajat = async function () {
-      const nume = prompt("Introduceți numele complet al angajatului de șters:");
-      if (!nume) return;
-      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
-      const toDelete = snapshot.docs.filter(doc => doc.data().nume === nume);
-      for (const d of toDelete) {
-        await deleteDoc(d.ref);
+    window.switchTura = (id)=>{
+      document.getElementById("tura1").style.display="none";
+      document.getElementById("tura2").style.display="none";
+      document.getElementById(id).style.display="";
+    };
+
+    // Construiește secțiunea Lunar
+    (function initLunar(){
+      buildHeadLunar(document.getElementById("tura1_head"));
+      buildBodyLunar(document.getElementById("tura1_body"), angajatiTura1, 1);
+      buildHeadLunar(document.getElementById("tura2_head"));
+      buildBodyLunar(document.getElementById("tura2_body"), angajatiTura2, 2);
+    })();
+
+
+    // =========================================================
+    // ===============   ADMIN (raport & mgmt)   ===============
+    // =========================================================
+    const adminHead = document.getElementById("admin_head");
+    const adminBody = document.getElementById("admin_body");
+    const filtruBtn = document.getElementById("filtruBtn");
+    const ddlLuna   = document.getElementById("filtruLuna");
+    const ddlTura   = document.getElementById("filtruTura");
+    const txtNume   = document.getElementById("filtruNume");
+
+    function buildHeadAdmin(){
+      adminHead.innerHTML="";
+      const cells=["Nume","Tura", ...Array.from({length:31},(_,i)=>String(i+1)),"Total"];
+      for(const c of cells){
+        const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th);
       }
-      alert(`Angajatul '${nume}' a fost șters.`);
-      incarcaPontaj();
     }
 
-    window.editeazaAngajat = async function () {
-      const numeVechi = prompt("Introduceți numele complet al angajatului de modificat:");
-      if (!numeVechi) return;
-      const numeNou = prompt("Introduceți noul nume (sau apăsați OK pentru a nu-l schimba):", numeVechi);
-      const turaNoua = prompt("Introduceți noua tură (1 sau 2, sau apăsați OK pentru a nu o schimba):");
+    async function incarcaAdmin(){
+      buildHeadAdmin();
+      const snap = await getDocs(collection(db,"pontaj_lunar"));
+      const map = {}; // key = nume_tura_luna
 
-      const snapshot = await getDocs(collection(db, "pontaj_lunar"));
-      const deEditat = snapshot.docs.filter(doc => doc.data().nume === numeVechi);
+      snap.forEach(dref=>{
+        const d = dref.data();
+        // filtre
+        if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
+        if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
+        if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
 
-      if (deEditat.length === 0) return alert("Niciun angajat găsit cu acest nume.");
+        const key = `${d.nume}_${d.tura}_${d.luna}`;
+        if(!map[key]) map[key] = {nume:d.nume, tura:d.tura, luna:d.luna, totalMin:0, zile:{}};
+        map[key].zile[d.zi] = d.ora || "";
+        const [h,m] = String(d.ora||"").split(":").map(Number);
+        if(!isNaN(h)&&!isNaN(m)) map[key].totalMin += h*60+m;
+      });
 
-      for (const d of deEditat) {
+      adminBody.innerHTML="";
+      Object.values(map).forEach(p=>{
+        const tr=document.createElement("tr");
+        const total = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
+        tr.innerHTML = `
+          <td class="name">${p.nume}</td>
+          <td>${p.tura}</td>
+          ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
+          <td class="total">${total}</td>
+        `;
+        adminBody.appendChild(tr);
+      });
+      if(!adminBody.children.length){
+        adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
+      }
+    }
+
+    filtruBtn.addEventListener("click", incarcaAdmin);
+
+    // Export CSV (din tabelul Admin)
+    window.exportCSV = function(){
+      const rows = [...document.querySelectorAll("#admin_body tr")].map(tr =>
+        [...tr.querySelectorAll("td")].map(td => td.textContent.replaceAll(","," ").trim())
+      );
+      const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
+      let csv = [head, ...rows].map(r=>r.join(",")).join("\n");
+      const blob = new Blob([csv], {type:"text/csv"});
+      const a=document.createElement("a");
+      a.href=URL.createObjectURL(blob);
+      a.download="pontaj_admin.csv";
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+    };
+
+    // CRUD angajați (creează/editează/șterge documente asociate numelui)
+    window.adaugaAngajat = async function(){
+      const nume = prompt("Introduceți numele complet:");
+      const tura = prompt("Introduceți tura (1 sau 2):");
+      if(!nume || !tura) return alert("Date incomplete.");
+      const id = `${nume.replaceAll(' ','_')}_${new Date().getFullYear()}_init_tura${tura}`;
+      await setDoc(doc(db,"pontaj_lunar",id),{
+        nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura)
+      });
+      alert("Angajat adăugat.");
+      incarcaAdmin();
+    };
+
+    window.stergeAngajat = async function(){
+      const nume = prompt("Numele complet de șters:");
+      if(!nume) return;
+      const snap = await getDocs(collection(db,"pontaj_lunar"));
+      const toDel = snap.docs.filter(d=>d.data().nume===nume);
+      if(!toDel.length) return alert("Nu s-au găsit documente pentru acest nume.");
+      for(const d of toDel) await deleteDoc(d.ref);
+      alert(`Șters ${toDel.length} înregistrări pentru ${nume}.`);
+      incarcaAdmin();
+    };
+
+    window.editeazaAngajat = async function(){
+      const numeVechi = prompt("Numele actual:");
+      if(!numeVechi) return;
+      const numeNou  = prompt("Noul nume (Enter pt. același):", numeVechi);
+      const turaNoua = prompt("Noua tură (1/2 sau Enter):");
+
+      const snap = await getDocs(collection(db,"pontaj_lunar"));
+      const docs = snap.docs.filter(d=>d.data().nume===numeVechi);
+      if(!docs.length) return alert("Nu s-au găsit documente pentru acest nume.");
+
+      for(const d of docs){
         const data = d.data();
         const newNume = numeNou || data.nume;
         const newTura = turaNoua ? Number(turaNoua) : data.tura;
-        await setDoc(doc(db, "pontaj_lunar", `${newNume.replaceAll(' ', '_')}_${data.an}_${data.luna}_${data.zi}_tura${newTura}`), {
-          ...data,
-          nume: newNume,
-          tura: newTura
-        });
+        const newId   = `${newNume.replaceAll(' ','_')}_${data.an}_${String(data.luna).padStart(2,"0")}_${String(data.zi).padStart(2,"0")}_tura${newTura}`;
+
+        await setDoc(doc(db,"pontaj_lunar",newId),{...data, nume:newNume, tura:newTura});
         await deleteDoc(d.ref);
       }
-      alert("Datele angajatului au fost actualizate.");
-      incarcaPontaj();
-    }
+      alert("Actualizat.");
+      incarcaAdmin();
+    };
 
-    incarcaPontaj();
-
+    // prima încărcare tabel admin dacă tab-ul e deschis (în mod implicit, pornim pe Lunar)
+    // incarcaAdmin(); // se va apela la schimbarea tab-ului
   </script>
-  <style>
-    body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; background: #f0f4f8; }
-    header { background: linear-gradient(to right, #0066cc, #003366); color: white; padding: 12px; text-align: center; font-family: 'Trebuchet MS', sans-serif; }
-    .toolbar { text-align: center; margin: 15px; display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
-    .toolbar select, .toolbar input { padding: 6px; font-size: 13px; border-radius: 5px; border: 1px solid #ccc; }
-    .toolbar button { padding: 7px 14px; font-size: 13px; cursor: pointer; background: #007bff; color: white; border: none; border-radius: 5px; transition: background 0.2s; }
-    .toolbar button:hover { background: #0056b3; }
-    table { border-collapse: collapse; width: 100%; font-size: 11px; background: white; margin: 20px auto; border-radius: 8px; overflow: hidden; }
-    th, td { border: 1px solid #ccc; padding: 4px; text-align: center; }
-    th { background-color: #007bff; color: white; position: sticky; top: 0; z-index: 2; }
-    thead th:first-child, thead th:nth-child(2) { position: sticky; left: 0; background: #0066cc; z-index: 3; }
-    tbody td:first-child, tbody td:nth-child(2) { position: sticky; left: 0; background: #e6f0ff; font-weight: bold; }
-  </style>
-</head>
-<body>
-  <header>
-    <img src="sigla.png" alt="Sigla">        
-    <h1>Pontaj Lunar</h1>
-  </header>
-  <div class="toolbar">
-    <label>Luna:
-      <select id="filtruLuna">
-        <option value="">Toate</option>
-        <option value="1">Ianuarie</option>
-        <option value="2">Februarie</option>
-        <option value="3">Martie</option>
-        <option value="4">Aprilie</option>
-        <option value="5">Mai</option>
-        <option value="6">Iunie</option>
-        <option value="7">Iulie</option>
-        <option value="8">August</option>
-        <option value="9">Septembrie</option>
-        <option value="10">Octombrie</option>
-        <option value="11">Noiembrie</option>
-        <option value="12">Decembrie</option>
-      </select>
-    </label>
-    <label>Tura:
-      <select id="filtruTura">
-        <option value="">Toate</option>
-        <option value="Tura 1">Tura 1</option>
-        <option value="Tura 2">Tura 2</option>
-      </select>
-    </label>
-    <label>Nume:
-      <input type="text" id="filtruNume" placeholder="Filtru nume">
-    </label>
-    <button id="filtruBtn">Aplică filtre</button>
-    <button onclick="exportCSV()">Exportă CSV</button>
-    <button onclick="printPDF()">Exportă PDF</button>
-    <button onclick="adaugaAngajat()">Adaugă Angajat</button>
-    <button onclick="stergeAngajat()">Șterge Angajat</button>
-    <button onclick="editeazaAngajat()">Editează Angajat</button>
-  </div>
-  <div class="scroll-container">
-    <table>
-      <thead>
-  <tr id="antetTabel"></tr>
-      </thead>
-      <tbody id="adminTabelBody">
-        <!-- Datele vor fi încărcate aici din Firestore -->
-      </tbody>
-    </table>
-  </div>
 </body>
 </html>
-
