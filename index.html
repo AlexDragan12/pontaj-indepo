@@ -358,7 +358,6 @@
       for(const c of cells){
         const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th);
       }
-      // evidențiază weekend‑urile în header: luna selectată (sau curentă)
       const lunaSel = Number(ddlLuna.value || lunaNum);
       const m0 = lunaSel-1, y = anCurent;
       adminHead.querySelectorAll("th").forEach((th,i)=>{
@@ -377,7 +376,6 @@
 
       snap.forEach(dref=>{
         const d = dref.data();
-        // filtre
         if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
         if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
@@ -417,7 +415,6 @@
       setLoading(false);
     }
 
-    // filtre: aplicare automată & debounce
     ddlLuna.addEventListener("change", incarcaAdmin);
     ddlTura.addEventListener("change", incarcaAdmin);
     txtNume.addEventListener("input", debounce(incarcaAdmin, 250));
@@ -438,7 +435,7 @@
       return {head, rows};
     }
 
-    // ============ EXPORT XLSX din Raport & Management ============
+    // ============ EXPORT XLSX din Raport & Management (cu culori CO/N/FP) ============
     window.exportXLSXAdmin = async function(){
       const {head, rows} = getAdminTableData();
       if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
@@ -448,6 +445,12 @@
       const titlu = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` +
                     (ddlTura.value?` (Tura ${ddlTura.value})`:"");
       const generatLa = `Generat la: ${now.toLocaleString("ro-RO")}`;
+
+      // culori CO/N/FP
+      const fillCO = "FFE8F7E8", textCO = "FF0F3D0F"; // verde deschis
+      const fillN  = "FFFFEAEA", textN  = "FF651010"; // roșu deschis
+      const fillFP = "FFFFF8E6", textFP = "FF5A4100"; // galben deschis
+      const fillWeekend = "FFE6EEF7";
 
       const wb = new ExcelJS.Workbook();
       const ws = wb.addWorksheet("Raport", {properties:{defaultRowHeight:16}});
@@ -475,18 +478,32 @@
         const col = 2 + zi; // 1=Nume,2=Tura => zi=1 e col 3
         if(col<=head.length && isWeekend(y,m0,zi)){
           const cell = headerRow.getCell(col);
-          cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFE6EEF7"}};
+          cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillWeekend}};
         }
       }
 
-      // date
+      // date + colorare CO/N/FP
+      const startColZile = 3; // col 3..33 sunt zilele
       rows.forEach(r=>{
         const row = ws.addRow(r);
-        row.eachCell(c=>{
+        row.eachCell((c, colIndex)=>{
           c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
           c.alignment = {vertical:"middle", horizontal:"center"};
+          if (colIndex >= startColZile && colIndex <= head.length-1) {
+            const val = String(c.value ?? "").toUpperCase();
+            if (val === "CO") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillCO}}; c.font={color:{argb:textCO}, bold:true}; }
+            if (val === "N")  { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillN}};  c.font={color:{argb:textN},  bold:true}; }
+            if (val === "FP") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillFP}}; c.font={color:{argb:textFP},bold:true}; }
+          }
         });
       });
+
+      // legendă
+      const lastRow = ws.lastRow.number + 1;
+      ws.addRow([]);
+      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată"]);
+      ws.mergeCells(lastRow+1,1,lastRow+1,Math.min(6, head.length));
+      ws.getCell(lastRow+1,1).font = {italic:true, size:10, color:{argb:"FF6B7D93"}};
 
       // sigla
       try{
@@ -500,60 +517,78 @@
       saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
     };
 
-    // ============ EXPORT PDF din Raport & Management ============
+    // ============ EXPORT PDF din Raport & Management (culori CO/N/FP) ============
     window.exportPDFAdmin = async function(){
       const {head, rows} = getAdminTableData();
-      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
+      if (!rows.length || (rows.length===1 && rows[0].length===1)) { 
+        alert("Nu există date."); 
+        return; 
+      }
 
       const now = new Date();
       const lunaSel = Number(ddlLuna.value || lunaNum);
       const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
       const gen = `Generat la: ${now.toLocaleString("ro-RO")}`;
 
+      // culori CO/N/FP (RGB)
+      const rgbCO = [232,247,232], txtCO = [15,61,15];
+      const rgbN  = [255,234,234], txtN  = [101,16,16];
+      const rgbFP = [255,248,230], txtFP = [90,65,0];
+      const rgbWeekendHead = [230,238,247];
+
       const { jsPDF } = window.jspdf;
       const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
       const pageWidth = doc.internal.pageSize.getWidth();
 
-      // sigla stanga + titlu
+      // sigla + titlu
       try{
         const b64 = await fetchToBase64("sigla.png");
         doc.addImage(b64, "PNG", 24, 20, 120, 34);
-      }catch(e){ /* ignore */ }
-
+      }catch(e){ /* ignorăm dacă nu se poate încărca */ }
       doc.setFont("helvetica","bold"); doc.setFontSize(14);
       doc.text(title, 160, 36, {maxWidth: pageWidth-180});
       doc.setFont("helvetica","normal"); doc.setFontSize(10);
       doc.text(gen, 160, 54);
 
-      // marcăm weekend-urile pe header cu stil
-      const lunaForWeekend = lunaSel;
-      const headStyles = head.map((h,i)=>{
-        // i: 0=Nume,1=Tura, zile 1..31 la 2..32
-        if(i>=2){
-          const zi = i-1;
-          if (isWeekend(anCurent, lunaForWeekend-1, zi)){
-            return { fillColor:[230,238,247] };
-          }
+      // stil weekend pe header
+      const headStyles = head.map((_, i) => {
+        if (i >= 2) {
+          const zi = i - 1; // col 2..32 -> zile 1..31
+          if (isWeekend(anCurent, lunaSel - 1, zi)) return { fillColor: rgbWeekendHead };
         }
         return null;
       });
 
-      autoTable(doc, {
+      doc.autoTable({
         startY: 74,
         head: [head],
         body: rows,
         styles: { fontSize:8, cellPadding:3, halign:'center', valign:'middle' },
         headStyles: { fillColor:[204,229,255], textColor:0, halign:'center' },
-        didParseCell: (data)=>{
-          if(data.section==='head'){
-            const style = headStyles[data.column.index];
-            if(style && style.fillColor) data.cell.styles.fillColor = style.fillColor;
-          }
-        },
         columnStyles: { 0:{halign:'left', cellWidth:'auto'}, 1:{cellWidth:28} },
         theme: 'grid',
-        margin: {left:24, right:24}
+        margin: {left:24, right:24},
+        didParseCell: (data) => {
+          if (data.section === 'head') {
+            const s = headStyles[data.column.index];
+            if (s && s.fillColor) data.cell.styles.fillColor = s.fillColor;
+          }
+          if (data.section === 'body') {
+            const colIdx = data.column.index;
+            const isZi = (colIdx >= 2 && colIdx <= head.length-2); // exclude Nume(0), Tura(1), Total(last)
+            if (!isZi) return;
+            const val = String(data.cell.raw ?? "").toUpperCase();
+            if (val === "CO") { data.cell.styles.fillColor = rgbCO; data.cell.styles.textColor = txtCO; data.cell.styles.fontStyle = 'bold'; }
+            if (val === "N")  { data.cell.styles.fillColor = rgbN;  data.cell.styles.textColor = txtN;  data.cell.styles.fontStyle = 'bold'; }
+            if (val === "FP") { data.cell.styles.fillColor = rgbFP; data.cell.styles.textColor = txtFP; data.cell.styles.fontStyle = 'bold'; }
+          }
+        }
       });
+
+      // legendă discretă jos
+      let y = doc.lastAutoTable.finalY || 74;
+      doc.setFontSize(9); doc.setTextColor(107,125,147);
+      doc.text("Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată", 24, y + 18);
 
       doc.save(`raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.pdf`);
     };
@@ -652,7 +687,7 @@
   <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
 
-  <!-- jsPDF + AutoTable pentru PDF -->
+  <!-- jsPDF + AutoTable (UMD) pentru PDF (ORDINEA CONTEAZĂ) -->
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
