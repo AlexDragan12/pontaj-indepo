@@ -8,6 +8,7 @@
     :root{
       --bg:#0d1b2a; --card:#1b263b; --muted:#415a77; --accent:#00bcd4; --accent2:#ff0055;
       --text:#eef2f6; --thead:#0f3554; --thead2:#007acc; --border:#2e3b55;
+      --wkbg:#14324a; --ok:#1abc9c; --warn:#f7b32b; --danger:#e74c3c;
     }
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
@@ -19,23 +20,32 @@
     header img{height:36px}
     header h1{margin:0;font-size:18px;letter-spacing:.3px}
 
-    .print-header{display:none} /* vizibil doar la print */
-
-    .toolbar,.tabs{display:flex;flex-wrap:wrap;gap:10px;justify-content:center;padding:10px}
-    .toolbar{
-      background:rgba(255,255,255,.03);border-top:1px solid #0f2536;border-bottom:1px solid #0f2536
+    .tabs{display:flex;gap:8px;justify-content:center;padding:10px 12px;background:rgba(255,255,255,.03)}
+    .tab{
+      background:#14324a;border:1px solid var(--border);color:var(--text);cursor:pointer;
+      padding:8px 12px;border-radius:10px;font-weight:600;font-size:13px
     }
-    select,input,button{
-      padding:8px 10px;font-size:13px;border-radius:8px;border:1px solid var(--border);background:#102338;color:var(--text)
-    }
-    button{background:var(--accent);border:none;color:#04202e;font-weight:600;cursor:pointer}
-    button.secondary{background:#14324a;color:var(--text);border:1px solid var(--border)}
-    button.danger{background:#d9534f;color:#fff;border:none}
-    button.tab{background:#14324a}
-    .tab.active{background:var(--accent2);color:#fff}
+    .tab.active{background:var(--accent2);border-color:transparent}
 
     .wrap{padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
+
+    .toolbar{
+      display:flex;flex-wrap:wrap;gap:8px;align-items:center;justify-content:space-between;margin-bottom:10px
+    }
+    .left,.right{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+    label{font-size:12px;opacity:.85}
+    select,input{
+      padding:8px 10px;font-size:13px;border-radius:10px;border:1px solid var(--border);
+      background:#102338;color:var(--text)
+    }
+    .btn{
+      padding:8px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-weight:700;font-size:13px
+    }
+    .btn.primary{background:var(--accent);color:#04202e;border:none}
+    .btn.ghost{background:#14324a}
+    .btn.danger{background:var(--danger);color:#fff;border:none}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#102338;border:1px solid var(--border);opacity:.9}
 
     .tab-content{display:none}
     .tab-content.active{display:block}
@@ -47,90 +57,26 @@
     th{position:sticky;top:0;background:var(--thead2);color:#fff;font-weight:600}
     td{background:#0d2032}
     td:first-child, th:first-child{position:sticky;left:0;background:#0f3554;z-index:1}
-    td.name{background:#123; font-weight:600}
+    td.name{background:#123;font-weight:600}
+    th.weekend{background:linear-gradient(180deg,#0f4b6d, #0b3b58)}
+    td.weekend{background:var(--wkbg)}
 
-    /* Celule compacte pentru luna întreagă pe ecran */
     th,td{padding:6px;font-size:11px}
     input[type="text"]{
       width:46px;min-width:46px;text-align:center;font-size:11px;
       background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:3px 4px
     }
     .total{font-weight:700;background:#112b40}
-
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
 
-    /* ===== Coduri speciale (CO / N / FP) pe ecran ===== */
+    /* Coduri speciale CO / N / FP (ecran) */
     .cod-CO input{ background:#e8f7e8 !important; border-color:#9ed39e !important; color:#0f3d0f !important; }
     .cod-N  input{ background:#ffeaea !important; border-color:#f5a5a5 !important; color:#651010 !important; }
     .cod-FP input{ background:#fff8e6 !important; border-color:#f1d28a !important; color:#5a4100 !important; }
 
-    /* ===== Print: include valorile din input (ore/CO/N/FP) + antet cu siglă ===== */
-    @media print {
-      @page { size: A4 landscape; margin: 10mm; }
-      body { background:#fff; color:#000; }
-
-      /* ascunde UI (dar NU ascunde input-urile) */
-      header, .tabs, .toolbar, .section-title,
-      button, select { display: none !important; }
-
-      /* arată doar tabul de pontaj lunar (raportul) */
-      #admin { display: none !important; }
-      #lunar { display: block !important; }
-
-      /* antetul PDF cu siglă */
-      .print-header {
-        display: flex !important;
-        align-items: center;
-        gap: 12px;
-        margin: 0 16px 10px 16px;
-        padding-bottom: 6px;
-        border-bottom: 2px solid #000;
-      }
-      .print-header img { height: 28px; }
-      .print-header h2 { margin:0; font-size:16px; color:#000; }
-      .print-header small { font-weight: normal; font-size: 12px; }
-
-      /* tabel stilizat pentru tipar */
-      .wrap { padding: 0 !important; }
-      .card { border: none !important; padding: 0 !important; }
-      .scroll-x { overflow: visible !important; }
-
-      table { width: 100% !important; border-collapse: collapse !important; }
-      th, td {
-        border: 1px solid #000 !important;
-        background: #fff !important;
-        color: #000 !important;
-        position: static !important;
-        padding: 5px 6px !important;
-        font-size: 11px !important;
-      }
-      th {
-        background: #f0f0f0 !important;
-        -webkit-print-color-adjust: exact;
-        print-color-adjust: exact;
-      }
-      td.name { font-weight: 700 !important; }
-      td.total, th:last-child { font-weight: 700 !important; }
-
-      /* input-urile apar ca text simplu în PDF */
-      input[type="text"]{
-        display:inline-block !important;
-        border:none !important;
-        background:transparent !important;
-        color:#000 !important;
-        width:auto !important;
-        padding:0 !important;
-        font: inherit !important;
-      }
-
-      /* contur subtil pt. codurile speciale la print */
-      .cod-CO td { border:1px solid #0a0 !important; }
-      .cod-N  td { border:1px solid #a00 !important; }
-      .cod-FP td { border:1px solid #aa8800 !important; }
-
-      /* evită tăieri urâte */
-      tr { break-inside: avoid; page-break-inside: avoid; }
-    }
+    /* Mic spinner */
+    .spinner{width:16px;height:16px;border:2px solid #2c4761;border-top-color:#7fb3ff;border-radius:50%;animation:spin .7s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
 <body>
@@ -139,16 +85,6 @@
     <h1>Pontaj – Lunar & Admin</h1>
   </header>
 
-  <!-- Antet DOAR pentru PDF -->
-  <div class="print-header">
-    <img src="sigla.png" alt="Sigla" />
-    <div>
-      <h2>Raport pontaj – <span id="printMonth"></span> <small>(<span id="printTura"></span>)</small></h2>
-      <p style="margin:4px 0 0; opacity:.8">Generat la: <span id="printNow"></span></p>
-    </div>
-  </div>
-
-  <!-- Tabs -->
   <div class="tabs">
     <button class="tab active" data-tab="lunar">Pontaj Lunar</button>
     <button class="tab" data-tab="admin">Raport & Management</button>
@@ -160,10 +96,12 @@
     <section id="lunar" class="tab-content active">
       <div class="card">
         <h3 class="section-title">Ture</h3>
-        <div class="toolbar" style="justify-content:flex-start">
-          <button class="secondary" onclick="switchTura('tura1')">Tura 1</button>
-          <button class="secondary" onclick="switchTura('tura2')">Tura 2</button>
-          <span style="margin-left:8px;opacity:.8">Luna curentă</span>
+        <div class="toolbar">
+          <div class="left">
+            <button class="btn ghost" onclick="switchTura('tura1')">Tura 1</button>
+            <button class="btn ghost" onclick="switchTura('tura2')">Tura 2</button>
+            <span class="pill">Luna curentă</span>
+          </div>
         </div>
 
         <div class="scroll-x">
@@ -183,37 +121,48 @@
     <!-- ========= ADMIN ========= -->
     <section id="admin" class="tab-content">
       <div class="card">
-        <h3 class="section-title">Filtre & Export</h3>
+        <h3 class="section-title">Raport & Management</h3>
+
+        <!-- Toolbar modernizată -->
         <div class="toolbar">
-          <label>Luna
-            <select id="filtruLuna">
-              <option value="">Toate</option>
-              <option value="1">Ianuarie</option><option value="2">Februarie</option>
-              <option value="3">Martie</option><option value="4">Aprilie</option>
-              <option value="5">Mai</option><option value="6">Iunie</option>
-              <option value="7">Iulie</option><option value="8">August</option>
-              <option value="9">Septembrie</option><option value="10">Octombrie</option>
-              <option value="11">Noiembrie</option><option value="12">Decembrie</option>
-            </select>
-          </label>
-          <label>Tura
-            <select id="filtruTura">
-              <option value="">Toate</option>
-              <option value="1">Tura 1</option>
-              <option value="2">Tura 2</option>
-            </select>
-          </label>
-          <input id="filtruNume" type="text" placeholder="Filtru nume" />
-          <button id="filtruBtn">Aplică filtre</button>
-          <button onclick="exportXLSX()">Export XLSX</button>
-          <button onclick="window.print()">Export PDF</button>
+          <div class="left" id="filters">
+            <label>Luna
+              <select id="filtruLuna">
+                <option value="">Toate</option>
+                <option value="1">Ianuarie</option><option value="2">Februarie</option>
+                <option value="3">Martie</option><option value="4">Aprilie</option>
+                <option value="5">Mai</option><option value="6">Iunie</option>
+                <option value="7">Iulie</option><option value="8">August</option>
+                <option value="9">Septembrie</option><option value="10">Octombrie</option>
+                <option value="11">Noiembrie</option><option value="12">Decembrie</option>
+              </select>
+            </label>
+            <label>Tura
+              <select id="filtruTura">
+                <option value="">Toate</option>
+                <option value="1">Tura 1</option>
+                <option value="2">Tura 2</option>
+              </select>
+            </label>
+            <input id="filtruNume" type="text" placeholder="Caută nume (live)..." />
+            <button class="btn ghost" id="resetFiltre">Reset</button>
+            <span class="pill" id="statusCount">—</span>
+          </div>
+
+          <div class="right">
+            <button class="btn ghost" id="reloadBtn"><span class="spinner" style="display:none" id="loadSpin"></span> Reîncarcă</button>
+            <button class="btn primary" onclick="exportXLSXAdmin()">Export XLSX (Raport)</button>
+            <button class="btn primary" onclick="exportPDFAdmin()">Export PDF (Raport)</button>
+          </div>
         </div>
 
         <h3 class="section-title">Management angajați</h3>
         <div class="toolbar">
-          <button onclick="adaugaAngajat()">Adaugă</button>
-          <button onclick="editeazaAngajat()">Editează</button>
-          <button class="danger" onclick="stergeAngajat()">Șterge</button>
+          <div class="left">
+            <button class="btn primary" onclick="adaugaAngajat()">Adaugă</button>
+            <button class="btn ghost" onclick="editeazaAngajat()">Editează</button>
+            <button class="btn danger" onclick="stergeAngajat()">Șterge</button>
+          </div>
         </div>
 
         <div class="scroll-x">
@@ -247,6 +196,12 @@
     const db  = getFirestore(app);
 
     const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
+    const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
+    const today = new Date();
+    const lunaIdx = today.getMonth();         // 0..11
+    const lunaNum = lunaIdx + 1;              // 1..12
+    const anCurent = today.getFullYear();
+    const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
 
     // ---------- TAB SWITCH ----------
     document.querySelectorAll(".tab").forEach(b=>{
@@ -259,32 +214,23 @@
       });
     });
 
+    // ---------- UTIL ----------
+    const isWeekend = (y, m0, d) => {
+      const w = new Date(y, m0, d).getDay(); // 0=Sun,6=Sat
+      return w === 0 || w === 6;
+    };
+    const debounce = (fn, ms=250) => {
+      let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
+    };
+
     // =========================================================
     // ===============    PONTAJ LUNAR (Ture)    ===============
     // =========================================================
-    const today = new Date();
-    const lunaIdx = today.getMonth();         // 0..11
-    const lunaNum = lunaIdx + 1;              // 1..12
-    const anCurent = today.getFullYear();
-    const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
-
-    // Luni în RO pentru antet PDF / XLSX
-    const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
-
-    // Elemente antet print
-    const printMonthEl = document.getElementById("printMonth");
-    const printTuraEl  = document.getElementById("printTura");
-    const printNowEl   = document.getElementById("printNow");
-    if (printMonthEl) {
-      printMonthEl.textContent = `${luniRO[lunaIdx]} ${anCurent}`;
-      printTuraEl.textContent  = "Tura 1"; // implicit
-      printNowEl.textContent   = new Date().toLocaleString("ro-RO");
-    }
-
     function buildHeadLunar(elHead){
       for(let zi=1; zi<=zileInLuna; zi++){
         const th=document.createElement("th");
         th.textContent = zi;
+        if (isWeekend(anCurent, lunaIdx, zi)) th.classList.add("weekend");
         elHead.appendChild(th);
       }
       const thT=document.createElement("th");
@@ -303,9 +249,11 @@
 
         for(let zi=1; zi<=zileInLuna; zi++){
           const td=document.createElement("td");
+          if (isWeekend(anCurent, lunaIdx, zi)) td.classList.add("weekend");
+
           const inp=document.createElement("input");
           inp.type="text"; inp.placeholder="hh:mm";
-          inp.setAttribute("list","coduriPontaj"); // autocomplete pentru CO/N/FP
+          inp.setAttribute("list","coduriPontaj");
           inp.dataset.nume=nume; inp.dataset.zi=zi; inp.dataset.tura=tura;
 
           const markCode = (val)=>{
@@ -340,7 +288,7 @@
       let totalMin=0;
       inputs.forEach(i=>{
         const v = (i.value||"").trim().toUpperCase();
-        if (v==="CO" || v==="N" || v==="FP") return; // codurile nu se aduna
+        if (v==="CO" || v==="N" || v==="FP") return;
         if(/^\d{1,2}:\d{2}$/.test(v)){
           const [h,m] = v.split(":").map(Number);
           if(!isNaN(h) && !isNaN(m)) totalMin += h*60+m;
@@ -359,7 +307,6 @@
       });
     }
 
-    // comutare tura + actualizare antet print
     const _switchTuraBase = (id)=>{
       document.getElementById("tura1").style.display="none";
       document.getElementById("tura2").style.display="none";
@@ -367,10 +314,8 @@
     };
     window.switchTura = (id)=>{
       _switchTuraBase(id);
-      if (printTuraEl) printTuraEl.textContent = (id === "tura1") ? "Tura 1" : "Tura 2";
     };
 
-    // încarcă angajații din colecția `angajati` și construiește tabelele Lunar
     async function incarcaAngajatiSiConstruieste(){
       const t1 = [], t2 = [];
       const snap = await getDocs(collection(db,"angajati"));
@@ -399,10 +344,13 @@
     // =========================================================
     const adminHead = document.getElementById("admin_head");
     const adminBody = document.getElementById("admin_body");
-    const filtruBtn = document.getElementById("filtruBtn");
     const ddlLuna   = document.getElementById("filtruLuna");
     const ddlTura   = document.getElementById("filtruTura");
     const txtNume   = document.getElementById("filtruNume");
+    const statusCount = document.getElementById("statusCount");
+    const reloadBtn = document.getElementById("reloadBtn");
+    const loadSpin = document.getElementById("loadSpin");
+    const resetFiltre = document.getElementById("resetFiltre");
 
     function buildHeadAdmin(){
       adminHead.innerHTML="";
@@ -410,15 +358,26 @@
       for(const c of cells){
         const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th);
       }
+      // evidențiază weekend‑urile în header: luna selectată (sau curentă)
+      const lunaSel = Number(ddlLuna.value || lunaNum);
+      const m0 = lunaSel-1, y = anCurent;
+      adminHead.querySelectorAll("th").forEach((th,i)=>{
+        if(i>=2 && i<=32){
+          const zi = i-1;
+          if (isWeekend(y,m0,zi)) th.classList.add("weekend");
+        }
+      });
     }
 
     async function incarcaAdmin(){
       buildHeadAdmin();
+      setLoading(true);
       const snap = await getDocs(collection(db,"pontaj_lunar"));
       const map = {}; // key = nume_tura_luna
 
       snap.forEach(dref=>{
         const d = dref.data();
+        // filtre
         if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
         if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
@@ -438,6 +397,7 @@
       });
 
       adminBody.innerHTML="";
+      let count=0;
       Object.values(map).forEach(p=>{
         const tr=document.createElement("tr");
         const total = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
@@ -448,48 +408,253 @@
           <td class="total">${total}</td>
         `;
         adminBody.appendChild(tr);
+        count++;
       });
-      if(!adminBody.children.length){
+      if(!count){
         adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
       }
+      statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
+      setLoading(false);
     }
-    filtruBtn.addEventListener("click", incarcaAdmin);
 
-    // ===== Export XLSX (înlocuiește CSV) =====
-    window.exportXLSX = function(){
-      // capul de tabel
+    // filtre: aplicare automată & debounce
+    ddlLuna.addEventListener("change", incarcaAdmin);
+    ddlTura.addEventListener("change", incarcaAdmin);
+    txtNume.addEventListener("input", debounce(incarcaAdmin, 250));
+    resetFiltre.addEventListener("click", ()=>{
+      ddlLuna.value=""; ddlTura.value=""; txtNume.value="";
+      incarcaAdmin();
+    });
+    reloadBtn.addEventListener("click", incarcaAdmin);
+
+    function setLoading(is){ loadSpin.style.display = is ? "inline-block" : "none"; reloadBtn.disabled = !!is; }
+
+    // ----- UTIL comun pentru exporturi: citesc tabelul Admin
+    function getAdminTableData(){
       const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
-      // rânduri
       const rows = [...document.querySelectorAll("#admin_body tr")].map(tr =>
         [...tr.querySelectorAll("td")].map(td => td.textContent.trim())
       );
+      return {head, rows};
+    }
 
-      // meta
+    // ============ EXPORT XLSX din Raport & Management ============
+    window.exportXLSXAdmin = async function(){
+      const {head, rows} = getAdminTableData();
+      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
+
       const now = new Date();
-      const turaVizibila = document.getElementById("tura2").style.display === "none" ? "Tura 1" : "Tura 2";
-      const titlu = [`Raport pontaj – ${luniRO[lunaIdx]} ${anCurent} (${turaVizibila})`];
-      const generatLa = [`Generat la: ${now.toLocaleString("ro-RO")}`];
+      const lunaSel = Number(ddlLuna.value || lunaNum);
+      const titlu = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` +
+                    (ddlTura.value?` (Tura ${ddlTura.value})`:"");
+      const generatLa = `Generat la: ${now.toLocaleString("ro-RO")}`;
 
-      // SheetJS – construim workbook
-      const data = [titlu, generatLa, [], head, ...rows];
-      const ws = XLSX.utils.aoa_to_sheet(data);
+      const wb = new ExcelJS.Workbook();
+      const ws = wb.addWorksheet("Raport", {properties:{defaultRowHeight:16}});
+      ws.columns = head.map(() => ({width: 12}));
+      ws.getColumn(1).width = 22; ws.getColumn(2).width = 8;
 
-      // bold pt. cap de tabel
-      for(let c=0;c<head.length;c++){
-        const addr = XLSX.utils.encode_cell({r:3, c}); // r=3 (al 4-lea rând) e headerul
-        if(!ws[addr]) continue;
-        ws[addr].s = { font:{ bold:true } };
+      // titlu + meta
+      ws.addRow([titlu]); ws.getCell("A1").font = {bold:true, size:14};
+      ws.mergeCells(1,1,1,head.length);
+      ws.addRow([generatLa]); ws.mergeCells(2,1,2,head.length);
+      ws.addRow([]);
+
+      // header
+      const headerRow = ws.addRow(head);
+      headerRow.font = {bold:true};
+      headerRow.alignment = {vertical:"middle", horizontal:"center"};
+      headerRow.eachCell(c=>{
+        c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFCCE5FF"}};
+        c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+      });
+
+      // weekend pe header
+      const m0 = lunaSel-1, y = anCurent;
+      for(let zi=1; zi<=31; zi++){
+        const col = 2 + zi; // 1=Nume,2=Tura => zi=1 e col 3
+        if(col<=head.length && isWeekend(y,m0,zi)){
+          const cell = headerRow.getCell(col);
+          cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFE6EEF7"}};
+        }
       }
 
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Raport");
-      XLSX.writeFile(wb, `pontaj_admin_${anCurent}_${String(lunaNum).padStart(2,"0")}.xlsx`);
+      // date
+      rows.forEach(r=>{
+        const row = ws.addRow(r);
+        row.eachCell(c=>{
+          c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+          c.alignment = {vertical:"middle", horizontal:"center"};
+        });
+      });
+
+      // sigla
+      try{
+        const b64 = await fetchToBase64("sigla.png"); // DataURL
+        const base64 = b64.startsWith("data:") ? b64.split(",")[1] : b64;
+        const imgId = wb.addImage({base64: base64, extension:"png"});
+        ws.addImage(imgId, { tl:{col:0, row:0}, ext:{width:140, height:40} });
+      }catch(e){ console.warn("Sigla XLSX:", e); }
+
+      const buf = await wb.xlsx.writeBuffer();
+      saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
+    };
+
+    // ============ EXPORT PDF din Raport & Management ============
+    window.exportPDFAdmin = async function(){
+      const {head, rows} = getAdminTableData();
+      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
+
+      const now = new Date();
+      const lunaSel = Number(ddlLuna.value || lunaNum);
+      const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
+      const gen = `Generat la: ${now.toLocaleString("ro-RO")}`;
+
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
+      const pageWidth = doc.internal.pageSize.getWidth();
+
+      // sigla stanga + titlu
+      try{
+        const b64 = await fetchToBase64("sigla.png");
+        doc.addImage(b64, "PNG", 24, 20, 120, 34);
+      }catch(e){ /* ignore */ }
+
+      doc.setFont("helvetica","bold"); doc.setFontSize(14);
+      doc.text(title, 160, 36, {maxWidth: pageWidth-180});
+      doc.setFont("helvetica","normal"); doc.setFontSize(10);
+      doc.text(gen, 160, 54);
+
+      // marcăm weekend-urile pe header cu stil
+      const lunaForWeekend = lunaSel;
+      const headStyles = head.map((h,i)=>{
+        // i: 0=Nume,1=Tura, zile 1..31 la 2..32
+        if(i>=2){
+          const zi = i-1;
+          if (isWeekend(anCurent, lunaForWeekend-1, zi)){
+            return { fillColor:[230,238,247] };
+          }
+        }
+        return null;
+      });
+
+      autoTable(doc, {
+        startY: 74,
+        head: [head],
+        body: rows,
+        styles: { fontSize:8, cellPadding:3, halign:'center', valign:'middle' },
+        headStyles: { fillColor:[204,229,255], textColor:0, halign:'center' },
+        didParseCell: (data)=>{
+          if(data.section==='head'){
+            const style = headStyles[data.column.index];
+            if(style && style.fillColor) data.cell.styles.fillColor = style.fillColor;
+          }
+        },
+        columnStyles: { 0:{halign:'left', cellWidth:'auto'}, 1:{cellWidth:28} },
+        theme: 'grid',
+        margin: {left:24, right:24}
+      });
+
+      doc.save(`raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.pdf`);
+    };
+
+    // util: încarcă imagine și întoarce DataURL
+    async function fetchToBase64(url){
+      const res = await fetch(url);
+      const blob = await res.blob();
+      return await new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Hook inițial pentru Admin
+    document.addEventListener("DOMContentLoaded", ()=> {
+      incarcaAdmin();
+    });
+
+    // ==================== CRUD angajați (colecția `angajati`) ====================
+    window.adaugaAngajat = async function(){
+      const nume = prompt("Introduceți numele complet:");
+      const tura = prompt("Introduceți tura (1 sau 2):");
+      if(!nume || !tura) return alert("Date incomplete.");
+
+      await setDoc(doc(db, "angajati", slug(nume)), {
+        nume: nume, tura: Number(tura), activ: true
+      });
+
+      const initId = `${slug(nume)}_${new Date().getFullYear()}_init_tura${tura}`;
+      await setDoc(doc(db, "pontaj_lunar", initId), {
+        nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura)
+      });
+
+      alert("Angajat adăugat.");
+      await incarcaAdmin();
+      await incarcaAngajatiSiConstruieste();
+    };
+
+    window.stergeAngajat = async function(){
+      const nume = prompt("Numele complet de șters:");
+      if(!nume) return;
+
+      await setDoc(doc(db, "angajati", slug(nume)), { activ: false }, { merge: true });
+
+      const snap = await getDocs(collection(db,"pontaj_lunar"));
+      const toDel = snap.docs.filter(d=>d.data().nume===nume);
+      for(const d of toDel) await deleteDoc(d.ref);
+
+      alert(`Angajatul '${nume}' a fost dezactivat și pontajul șters.`);
+      await incarcaAdmin();
+      await incarcaAngajatiSiConstruieste();
+    };
+
+    window.editeazaAngajat = async function(){
+      const numeVechi = prompt("Numele actual:");
+      if(!numeVechi) return;
+      const numeNou  = prompt("Noul nume (Enter pt. același):", numeVechi);
+      const turaNoua = prompt("Noua tură (1/2 sau Enter):");
+
+      const refVechi = doc(db, "angajati", slug(numeVechi));
+      const nou = {
+        ...(numeNou ? { nume: numeNou } : {}),
+        ...(turaNoua ? { tura: Number(turaNoua) } : {}),
+        activ: true
+      };
+      if (numeNou && slug(numeNou) !== slug(numeVechi)) {
+        const refNou = doc(db, "angajati", slug(numeNou));
+        await setDoc(refNou, nou, { merge: true });
+        await setDoc(refVechi, { activ:false }, { merge: true });
+      } else {
+        await setDoc(refVechi, nou, { merge: true });
+      }
+
+      const snap = await getDocs(collection(db,"pontaj_lunar"));
+      const docs = snap.docs.filter(d=>d.data().nume===numeVechi);
+      for (const d of docs) {
+        const data = d.data();
+        const newNume = numeNou || data.nume;
+        const newTura = turaNoua ? Number(turaNoua) : data.tura;
+        const newId   = `${slug(newNume)}_${data.an}_${String(data.luna).padStart(2,'0')}_${String(data.zi).padStart(2,'0')}_tura${newTura}`;
+        await setDoc(doc(db,"pontaj_lunar",newId), { ...data, nume:newNume, tura:newTura });
+        await deleteDoc(d.ref);
+      }
+
+      alert("Actualizat.");
+      await incarcaAdmin();
+      await incarcaAngajatiSiConstruieste();
     };
 
   </script>
 
-  <!-- SheetJS pentru XLSX -->
-  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.20.3/dist/xlsx.full.min.js"></script>
+  <!-- ExcelJS + FileSaver pentru XLSX -->
+  <script src="https://cdn.jsdelivr.net/npm/exceljs@4.4.0/dist/exceljs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/file-saver@2.0.5/dist/FileSaver.min.js"></script>
+
+  <!-- jsPDF + AutoTable pentru PDF -->
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
   <!-- Sugestii pentru coduri speciale CO / N / FP -->
   <datalist id="coduriPontaj">
