@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Pontaj – Lunar & Admin (unificat)</title>
+  <title>Pontaj – Lunar & Admin (unificat, cu colecția angajati)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -48,7 +48,7 @@
     td.name{background:#123; font-weight:600}
 
     /* Celule compacte pentru luna întreagă pe ecran */
-    th,td{padding:4px;font-size:11px}
+    th,td{padding:6px;font-size:11px}
     input[type="text"]{
       width:46px;min-width:46px;text-align:center;font-size:11px;
       background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:3px 4px
@@ -79,6 +79,7 @@
         <div class="toolbar" style="justify-content:flex-start">
           <button class="secondary" onclick="switchTura('tura1')">Tura 1</button>
           <button class="secondary" onclick="switchTura('tura2')">Tura 2</button>
+          <span style="margin-left:8px;opacity:.8">Luna curentă</span>
         </div>
 
         <div class="scroll-x">
@@ -134,9 +135,7 @@
         <div class="scroll-x">
           <table>
             <thead>
-              <tr id="admin_head">
-                <!-- construit dinamic: Nume | Tura | 1..31 | Total -->
-              </tr>
+              <tr id="admin_head"></tr>
             </thead>
             <tbody id="admin_body"><tr><td>Se încarcă…</td></tr></tbody>
           </table>
@@ -163,6 +162,8 @@
     const app = initializeApp(firebaseConfig);
     const db  = getFirestore(app);
 
+    const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
+
     // ---------- TAB SWITCH ----------
     document.querySelectorAll(".tab").forEach(b=>{
       b.addEventListener("click",()=>{
@@ -170,7 +171,6 @@
         document.querySelectorAll(".tab-content").forEach(x=>x.classList.remove("active"));
         b.classList.add("active");
         document.getElementById(b.dataset.tab).classList.add("active");
-        // Refresh admin table la deschidere
         if(b.dataset.tab === "admin") incarcaAdmin();
       });
     });
@@ -178,9 +178,6 @@
     // =========================================================
     // ===============    PONTAJ LUNAR (Ture)    ===============
     // =========================================================
-    const angajatiTura1 = ["Cosmin Stingu", "Dragan Alexandru"];
-    const angajatiTura2 = ["Lotorosanu Alexandru"];
-
     const today = new Date();
     const lunaIdx = today.getMonth();         // 0..11
     const lunaNum = lunaIdx + 1;              // 1..12
@@ -214,9 +211,7 @@
           inp.type="text"; inp.placeholder="hh:mm";
           inp.dataset.nume=nume; inp.dataset.zi=zi; inp.dataset.tura=tura;
           inp.addEventListener("change", async ()=>{
-            // calculează total
             calcTotalRow(tr);
-            // salvează în Firestore
             await setPontajFirebase(nume, zi, inp.value, tura);
           });
           td.appendChild(inp);
@@ -248,7 +243,7 @@
     async function setPontajFirebase(nume, zi, ora, tura){
       const lunaStr = String(lunaNum).padStart(2,"0");
       const ziStr   = String(zi).padStart(2,"0");
-      const idDoc = `${nume.replaceAll(' ','_')}_${anCurent}_${lunaStr}_${ziStr}_tura${tura}`;
+      const idDoc = `${slug(nume)}_${anCurent}_${lunaStr}_${ziStr}_tura${tura}`;
       await setDoc(doc(db,"pontaj_lunar",idDoc),{
         nume:nume, zi:zi, luna:lunaNum, an:anCurent, ora:ora, tura:tura
       });
@@ -260,13 +255,32 @@
       document.getElementById(id).style.display="";
     };
 
-    // Construiește secțiunea Lunar
-    (function initLunar(){
+    // încarcă angajații din colecția `angajati` și construiește tabelele Lunar
+    async function incarcaAngajatiSiConstruieste(){
+      const t1 = [], t2 = [];
+      const snap = await getDocs(collection(db,"angajati"));
+      snap.forEach(d=>{
+        const a = d.data();
+        if(a.activ === false) return;
+        if(Number(a.tura) === 1) t1.push(a.nume);
+        if(Number(a.tura) === 2) t2.push(a.nume);
+      });
+
+      // reset heads & bodies
+      document.getElementById("tura1_head").innerHTML = "<th>Nume</th>";
+      document.getElementById("tura2_head").innerHTML = "<th>Nume</th>";
+      document.getElementById("tura1_body").innerHTML = "";
+      document.getElementById("tura2_body").innerHTML = "";
+
       buildHeadLunar(document.getElementById("tura1_head"));
-      buildBodyLunar(document.getElementById("tura1_body"), angajatiTura1, 1);
+      buildBodyLunar(document.getElementById("tura1_body"), t1, 1);
+
       buildHeadLunar(document.getElementById("tura2_head"));
-      buildBodyLunar(document.getElementById("tura2_body"), angajatiTura2, 2);
-    })();
+      buildBodyLunar(document.getElementById("tura2_body"), t2, 2);
+    }
+
+    // Construiește secțiunea Lunar la start
+    incarcaAngajatiSiConstruieste();
 
 
     // =========================================================
@@ -339,28 +353,43 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     };
 
-    // CRUD angajați (creează/editează/șterge documente asociate numelui)
+    // ==================== CRUD angajați (colecția `angajati`) ====================
     window.adaugaAngajat = async function(){
       const nume = prompt("Introduceți numele complet:");
       const tura = prompt("Introduceți tura (1 sau 2):");
       if(!nume || !tura) return alert("Date incomplete.");
-      const id = `${nume.replaceAll(' ','_')}_${new Date().getFullYear()}_init_tura${tura}`;
-      await setDoc(doc(db,"pontaj_lunar",id),{
+
+      // 1) creează/actualizează angajatul în `angajati`
+      await setDoc(doc(db, "angajati", slug(nume)), {
+        nume: nume, tura: Number(tura), activ: true
+      });
+
+      // 2) (opțional) creează un doc inițial în pontaj_lunar ca să apară în rapoarte
+      const initId = `${slug(nume)}_${new Date().getFullYear()}_init_tura${tura}`;
+      await setDoc(doc(db, "pontaj_lunar", initId), {
         nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura)
       });
+
       alert("Angajat adăugat.");
-      incarcaAdmin();
+      await incarcaAdmin();                 // actualizează raportul
+      await incarcaAngajatiSiConstruieste();// actualizează imediat și „Pontaj Lunar”
     };
 
     window.stergeAngajat = async function(){
       const nume = prompt("Numele complet de șters:");
       if(!nume) return;
+
+      // 1) marchează inactiv în `angajati` (păstrăm istoric)
+      await setDoc(doc(db, "angajati", slug(nume)), { activ: false }, { merge: true });
+
+      // 2) (opțional) șterge toate înregistrările din pontaj_lunar pentru acest nume
       const snap = await getDocs(collection(db,"pontaj_lunar"));
       const toDel = snap.docs.filter(d=>d.data().nume===nume);
-      if(!toDel.length) return alert("Nu s-au găsit documente pentru acest nume.");
       for(const d of toDel) await deleteDoc(d.ref);
-      alert(`Șters ${toDel.length} înregistrări pentru ${nume}.`);
-      incarcaAdmin();
+
+      alert(`Angajatul '${nume}' a fost dezactivat și pontajul șters.`);
+      await incarcaAdmin();
+      await incarcaAngajatiSiConstruieste();
     };
 
     window.editeazaAngajat = async function(){
@@ -369,26 +398,38 @@
       const numeNou  = prompt("Noul nume (Enter pt. același):", numeVechi);
       const turaNoua = prompt("Noua tură (1/2 sau Enter):");
 
+      // 1) actualizează documentul din `angajati`
+      const refVechi = doc(db, "angajati", slug(numeVechi));
+      const nou = {
+        ...(numeNou ? { nume: numeNou } : {}),
+        ...(turaNoua ? { tura: Number(turaNoua) } : {}),
+        activ: true
+      };
+      if (numeNou && slug(numeNou) !== slug(numeVechi)) {
+        const refNou = doc(db, "angajati", slug(numeNou));
+        await setDoc(refNou, nou, { merge: true });
+        await setDoc(refVechi, { activ:false }, { merge: true });
+      } else {
+        await setDoc(refVechi, nou, { merge: true });
+      }
+
+      // 2) actualizează și toate documentele existente din 'pontaj_lunar'
       const snap = await getDocs(collection(db,"pontaj_lunar"));
       const docs = snap.docs.filter(d=>d.data().nume===numeVechi);
-      if(!docs.length) return alert("Nu s-au găsit documente pentru acest nume.");
-
-      for(const d of docs){
+      for (const d of docs) {
         const data = d.data();
         const newNume = numeNou || data.nume;
         const newTura = turaNoua ? Number(turaNoua) : data.tura;
-        const newId   = `${newNume.replaceAll(' ','_')}_${data.an}_${String(data.luna).padStart(2,"0")}_${String(data.zi).padStart(2,"0")}_tura${newTura}`;
-
-        await setDoc(doc(db,"pontaj_lunar",newId),{...data, nume:newNume, tura:newTura});
+        const newId   = `${slug(newNume)}_${data.an}_${String(data.luna).padStart(2,'0')}_${String(data.zi).padStart(2,'0')}_tura${newTura}`;
+        await setDoc(doc(db,"pontaj_lunar",newId), { ...data, nume:newNume, tura:newTura });
         await deleteDoc(d.ref);
       }
+
       alert("Actualizat.");
-      incarcaAdmin();
+      await incarcaAdmin();
+      await incarcaAngajatiSiConstruieste();
     };
 
-    // prima încărcare tabel admin dacă tab-ul e deschis (în mod implicit, pornim pe Lunar)
-    // incarcaAdmin(); // se va apela la schimbarea tab-ului
   </script>
 </body>
 </html>
-
