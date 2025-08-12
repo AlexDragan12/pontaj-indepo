@@ -579,7 +579,7 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
 
       const lastRow = ws.lastRow.number + 1;
       ws.addRow([]);
-      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată"]);
+      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fara plata"]);
       ws.mergeCells(lastRow+1,1,lastRow+1,Math.min(6, head.length));
       ws.getCell(lastRow+1,1).font = {italic:true, size:10, color:{argb:"FF6B7D93"}};
 
@@ -792,4 +792,5 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
   </datalist>
 </body>
 </html>
+
 
