@@ -430,7 +430,10 @@
 
       snap.forEach(dref=>{
         const d = dref.data();
-        if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
+        
+        // ignoră documentele de inițializare (zi/luna = 0)
+        if (Number(d.luna) === 0 || Number(d.zi) === 0) return;
+if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
         if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
 
