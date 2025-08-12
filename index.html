@@ -111,7 +111,32 @@
             <button class="btn ghost" onclick="resetPontaj('vizibil')">Resetează luna (tura vizibilă)</button>
             <button class="btn ghost" onclick="resetPontajAngajat()">Resetează un angajat</button>
           </div>
+        
+        <!-- Badge Options UI -->
+        <div class="toolbar" id="badgeOpts" style="margin-top:8px">
+          <div class="left">
+            <label>Badge
+              <select id="badgeSize">
+                <option value="ID-1" selected>ID-1 (85.6×54 mm)</option>
+                <option value="90x60">90×60 mm</option>
+              </select>
+            </label>
+            <label>QR (mm)
+              <input id="badgeQr" type="number" min="24" max="44" step="1" value="36" />
+            </label>
+            <label>Font nume (mm)
+              <input id="badgeName" type="number" min="3" max="8" step="0.1" value="5.2" />
+            </label>
+            <label>Font cod (mm)
+              <input id="badgeCode" type="number" min="2" max="6" step="0.1" value="3.6" />
+            </label>
+            <label class="pill">
+              <input id="badgePrint" type="checkbox" checked style="vertical-align:middle;margin-right:6px" /> Print la deschidere
+            </label>
+            <button class="btn ghost" onclick="previewBadgeFromPrompt()">Previzualizează Badge</button>
+          </div>
         </div>
+</div>
 
         <div class="scroll-x">
           <table id="tura1">
@@ -173,7 +198,32 @@
             <button class="btn ghost" onclick="qrAngajat()">QR Angajat</button>
             <button class="btn primary" onclick="descarcaQRSVG()">Descarcă QR (SVG)</button>
           </div>
+        
+        <!-- Badge Options UI -->
+        <div class="toolbar" id="badgeOpts" style="margin-top:8px">
+          <div class="left">
+            <label>Badge
+              <select id="badgeSize">
+                <option value="ID-1" selected>ID-1 (85.6×54 mm)</option>
+                <option value="90x60">90×60 mm</option>
+              </select>
+            </label>
+            <label>QR (mm)
+              <input id="badgeQr" type="number" min="24" max="44" step="1" value="36" />
+            </label>
+            <label>Font nume (mm)
+              <input id="badgeName" type="number" min="3" max="8" step="0.1" value="5.2" />
+            </label>
+            <label>Font cod (mm)
+              <input id="badgeCode" type="number" min="2" max="6" step="0.1" value="3.6" />
+            </label>
+            <label class="pill">
+              <input id="badgePrint" type="checkbox" checked style="vertical-align:middle;margin-right:6px" /> Print la deschidere
+            </label>
+            <button class="btn ghost" onclick="previewBadgeFromPrompt()">Previzualizează Badge</button>
+          </div>
         </div>
+</div>
 
         <div class="scroll-x">
           <table>
@@ -217,14 +267,121 @@
     const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
 
     // === Helpers QR / Badge ===
+    function getBadgeOpts(){
+      const size = (document.getElementById("badgeSize")||{}).value || "ID-1";
+      const qrMM = Number((document.getElementById("badgeQr")||{}).value || 36);
+      const fontNameMM = Number((document.getElementById("badgeName")||{}).value || 5.2);
+      const fontCodeMM = Number((document.getElementById("badgeCode")||{}).value || 3.6);
+      const showPrint = !!((document.getElementById("badgePrint")||{}).checked ?? true);
+      return { size, qrMM, fontNameMM, fontCodeMM, showPrint };
+    }
+    window.previewBadgeFromPrompt = async function(){
+      const nume = prompt("Numele complet pentru previzualizare badge:");
+      if(!nume) return;
+      const snap = await getDocs(collection(db,"angajati"));
+      let found=null;
+      snap.forEach(d=>{ const a=d.data(); if(a.activ!==false && a.nume===nume) found=a; });
+      if(!found){ alert("Nu am găsit angajatul."); return; }
+      if(!found.badge){
+        found.badge = genBadge();
+        await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
+      }
+      showBadge(found.badge, found.nume, getBadgeOpts());
+    };
+
     function genBadge(len=8){
       const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // fără 0/O/I/1
       return Array.from({length:len}, ()=> abc[Math.floor(Math.random()*abc.length)]).join('');
     }
-    function showQR(cod, nume){
-      const url = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(cod);
+    
+    // === Badge QR (ecuson 85.6 x 54 mm, portret) ===
+    function showBadge(cod, nume, opt = {}) {
+      const {
+        size = "ID-1",    // "ID-1" (85.6x54mm) sau "90x60"
+        qrMM = 36,        // latura QR în mm
+        fontNameMM = 5.2, // mărimea fontului pentru nume (mm)
+        fontCodeMM = 3.6, // mărimea fontului pentru cod (mm)
+        showPrint = true, // buton de print
+      } = opt;
+
+      const dims = size === "90x60" ? { w: 90, h: 60 } : { w: 85.6, h: 54 };
+      const qrURL = "https://api.qrserver.com/v1/create-qr-code/?format=svg&margin=0&data=" + encodeURIComponent(cod);
+
       const html = `
-        <html><head><title>QR ${nume}</title></head>
+<!doctype html><html><head><meta charset="utf-8">
+<title>Badge ${"${"}nume{"}"} </title>
+<style>
+  :root{ --w:${"${"}dims.w{"}"}mm; --h:${"${"}dims.h{"}"}mm; --qr:${"${"}qrMM{"}"}mm; --pad:4mm; --radius:3mm; }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:#f3f6fb}
+  .stage{min-height:100%;display:grid;place-items:center;padding:12px}
+  .card{
+    width:var(--w); height:var(--h); background:#fff; color:#0e2030;
+    border:1px solid #ccd8e6; border-radius:var(--radius);
+    padding:var(--pad); display:grid; grid-template-rows:auto 1fr auto; gap:3mm;
+    box-shadow:0 2px 10px rgba(0,0,0,.06);
+  }
+  .top{display:flex;align-items:center;justify-content:space-between}
+  .brand{font-weight:700;font-size:3.4mm; letter-spacing:.2mm; color:#0b3d5c}
+  .qr{width:var(--qr); height:var(--qr); border:1px solid #e3edf6; border-radius:2mm; padding:1mm; display:grid; place-items:center}
+  .mid{display:grid; place-items:center; text-align:center}
+  .name{font-weight:800; font-size:${"${"}fontNameMM{"}"}mm; line-height:1.05}
+  .code{font-weight:700; font-size:${"${"}fontCodeMM{"}"}mm; color:#2e4760; letter-spacing:.4mm; opacity:.85}
+  .bottom{display:flex; gap:4mm; justify-content:center}
+  .btn{
+    appearance:none; border:none; background:#0ea5b9; color:#04202e; font-weight:800;
+    padding:3mm 5mm; border-radius:9mm; cursor:pointer;
+  }
+  @page{
+    size: ${"${"}dims.w{"}"}mm ${"${"}dims.h{"}"}mm;
+    margin: 0;
+  }
+  @media print{
+    body{ background:#fff; }
+    .stage{ padding:0 }
+    .bottom{ display:none }
+    .card{ box-shadow:none; border:0 }
+  }
+</style>
+</head>
+<body>
+  <div class="stage">
+    <div class="card" role="article" aria-label="Badge angajat">
+      <div class="top">
+        <div class="brand">ECUSON ANGAJAT</div>
+        <div class="qr"><img src="${"${"}qrURL{"}"}" alt="QR ${"${"}nume{"}"}" style="width:100%;height:100%"></div>
+      </div>
+      <div class="mid">
+        <div class="name">${"${"}nume{"}"} </div>
+        <div class="code">${"${"}cod{"}"} </div>
+      </div>
+      <div class="bottom">
+        ${"${"}showPrint ? '<button class="btn" onclick="window.print()">Printează</button>' : ''{"}"}
+        <button class="btn" onclick="downloadSVG()">Descarcă QR (SVG)</button>
+      </div>
+    </div>
+  </div>
+<script>
+  function downloadSVG(){
+    const url = "${"${"}qrURL{"}"}";
+    fetch(url).then(r=>r.blob()).then(b=>{
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(b);
+      a.download = "QR_"+("${"${"}nume{"}"}").replace(/\s+/g,'_')+"_"+("${"${"}cod{"}"}")+".svg";
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(()=>URL.revokeObjectURL(a.href), 500);
+    }).catch(()=>{ window.open(url, "_blank"); });
+  }
+</script>
+</body></html>`;
+
+      const w = window.open("", "_blank", "width=520,height=720");
+      if (w) { w.document.write(html); w.document.close(); }
+      else { alert(`Nume: ${"${"}nume{"}"}
+Cod: ${"${"}cod{"}"}`); }
+    }
+
+</title></head>
         <body style="font-family:system-ui;display:grid;place-items:center;gap:10px;padding:16px;background:#f7f9fc">
           <h3 style="margin:0">${nume}</h3>
           <img src="${url}" alt="QR" style="border:1px solid #ccc;padding:6px;border-radius:8px"/>
@@ -703,7 +860,7 @@
       await setDoc(doc(db, "pontaj_lunar", initId), { nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura) });
 
       alert(`Angajat adăugat. Cod: ${badge}`);
-      showQR(badge, nume); // << NEW
+      showBadge(badge, nume, getBadgeOpts()); // << NEW
 
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
@@ -770,7 +927,7 @@
         found.badge = genBadge();
         await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
       }
-      showQR(found.badge, found.nume);
+      showBadge(found.badge, found.nume, getBadgeOpts());
     };
 
     // << NEW: descarcă direct QR SVG (folosind badge)
