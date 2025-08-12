@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Pontaj - Lunar </title>
+  <title>Pontaj – Lunar & Admin (unificat, cu colecția angajati) + Badge & QR</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -86,7 +86,7 @@
 <body>
   <header>
     <img src="sigla.png" alt="Sigla" />
-    <h1>Pontaj – Lunar</h1>
+    <h1>Pontaj – Lunar & Admin</h1>
   </header>
 
   <div class="tabs">
@@ -170,6 +170,7 @@
             <button class="btn primary" onclick="adaugaAngajat()">Adaugă</button>
             <button class="btn ghost" onclick="editeazaAngajat()">Editează</button>
             <button class="btn danger" onclick="stergeAngajat()">Șterge</button>
+            <button class="btn ghost" onclick="qrAngajat()">QR Angajat</button>
           </div>
         </div>
 
@@ -213,6 +214,26 @@
     const lunaNum = lunaIdx + 1;              // 1..12
     const anCurent = today.getFullYear();
     const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
+
+    // === Helpers QR / Badge ===
+    function genBadge(len=8){
+      const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // fără 0/O/I/1
+      return Array.from({length:len}, ()=> abc[Math.floor(Math.random()*abc.length)]).join('');
+    }
+    function showQR(cod, nume){
+      const url = "https://api.qrserver.com/v1/create-qr-code/?size=240x240&margin=0&data=" + encodeURIComponent(cod);
+      const html = `
+        <html><head><title>QR ${nume}</title></head>
+        <body style="font-family:system-ui;display:grid;place-items:center;gap:10px;padding:16px;background:#f7f9fc">
+          <h3 style="margin:0">${nume}</h3>
+          <img src="${url}" alt="QR" style="border:1px solid #ccc;padding:6px;border-radius:8px"/>
+          <div style="font-weight:700;letter-spacing:2px;font-size:18px">${cod}</div>
+          <button onclick="window.print()" style="padding:8px 12px;border-radius:8px;cursor:pointer">Printează</button>
+        </body></html>`;
+      const w = window.open("", "_blank", "width=360,height=420");
+      if(w){ w.document.write(html); w.document.close(); }
+      else { alert(`Cod: ${cod}`); }
+    }
 
     // ---------- TAB SWITCH ----------
     document.querySelectorAll(".tab").forEach(b=>{
@@ -469,7 +490,7 @@
         
         // ignoră documentele de inițializare (zi/luna = 0)
         if (Number(d.luna) === 0 || Number(d.zi) === 0) return;
-if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
+        if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
         if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
 
@@ -579,7 +600,7 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
 
       const lastRow = ws.lastRow.number + 1;
       ws.addRow([]);
-      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fara plata"]);
+      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată"]);
       ws.mergeCells(lastRow+1,1,lastRow+1,Math.min(6, head.length));
       ws.getCell(lastRow+1,1).font = {italic:true, size:10, color:{argb:"FF6B7D93"}};
 
@@ -669,12 +690,17 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
       const tura = prompt("Introduceți tura (1 sau 2):");
       if(!nume || !tura) return alert("Date incomplete.");
 
-      await setDoc(doc(db, "angajati", slug(nume)), { nume: nume, tura: Number(tura), activ: true });
+      // << NEW: generăm și salvăm badge-ul unic
+      const badge = genBadge();
+
+      await setDoc(doc(db, "angajati", slug(nume)), { nume: nume, tura: Number(tura), activ: true, badge });
 
       const initId = `${slug(nume)}_${new Date().getFullYear()}_init_tura${tura}`;
       await setDoc(doc(db, "pontaj_lunar", initId), { nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura) });
 
-      alert("Angajat adăugat.");
+      alert(`Angajat adăugat. Cod: ${badge}`);
+      showQR(badge, nume); // << NEW: afișăm QR pentru print
+
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
     };
@@ -724,6 +750,21 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
       alert("Actualizat.");
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
+    };
+
+    // << NEW: afișează/generază QR pentru un angajat existent
+    window.qrAngajat = async function(){
+      const nume = prompt("Numele complet pentru QR:");
+      if(!nume) return;
+      const snap = await getDocs(collection(db,"angajati"));
+      let found=null;
+      snap.forEach(d=>{ const a=d.data(); if(a.activ!==false && a.nume===nume) found=a; });
+      if(!found){ alert("Nu am găsit angajatul."); return; }
+      if(!found.badge){
+        found.badge = genBadge();
+        await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
+      }
+      showQR(found.badge, found.nume);
     };
 
     // ==================== RESET PONTAJ ====================
@@ -792,5 +833,3 @@ if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
   </datalist>
 </body>
 </html>
-
-
