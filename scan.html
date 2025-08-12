@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Scanare Pontaj</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root{--bg:#0d1b2a;--card:#1b263b;--text:#eef2f6;--border:#2e3b55;--ok:#1abc9c;--danger:#e74c3c;}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+    header{display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(90deg,#003566,#0b3d5c);border-bottom:1px solid #09314d}
+    header h1{margin:0;font-size:20px;letter-spacing:0.5px}
+    .wrap{padding:16px;max-width:500px;margin:0 auto}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
+    input{width:100%;padding:14px;border-radius:8px;border:1px solid var(--border);font-size:18px;background:#102338;color:var(--text);text-align:center;letter-spacing:1px}
+    #log{margin-top:12px;font-size:13px;background:#0f2133;border:1px solid #0e2a42;padding:10px;border-radius:10px;max-height:220px;overflow:auto}
+    .toast{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#102338;border:1px solid var(--border);padding:10px 14px;border-radius:12px;box-shadow:0 10px 30px #0006;display:none;font-weight:600}
+    .toast.ok{border-color:#0f6;background:#0b2b22}
+    .toast.err{border-color:#f66;background:#2b0b0b}
+  </style>
+</head>
+<body>
+<header><h1>Scanare Pontaj</h1></header>
+<div class="wrap">
+  <div class="card">
+    <input id="scanInput" type="text" placeholder="Scanează aici" autofocus />
+  </div>
+  <div class="card">
+    <div id="log"></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<audio id="beepOk" src="https://cdn.jsdelivr.net/gh/saadeghi/files/success.mp3" preload="auto"></audio>
+<audio id="beepErr" src="https://cdn.jsdelivr.net/gh/saadeghi/files/error.mp3" preload="auto"></audio>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+  import { getFirestore, collection, getDocs, doc, setDoc, addDoc, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+
+  const firebaseConfig = { apiKey:"AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls", authDomain:"pontaj2025.firebaseapp.com", projectId:"pontaj2025", storageBucket:"pontaj2025.firebasestorage.app", messagingSenderId:"732863008010", appId:"1:732863008010:web:e2b7ed0220f9fb4bcc3ef3" };
+  const app = initializeApp(firebaseConfig);
+  const db  = getFirestore(app);
+
+  const logBox=document.getElementById('log'), toastEl=document.getElementById('toast'), beepOk=document.getElementById('beepOk'), beepErr=document.getElementById('beepErr');
+  const slug = s=>s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
+  const toHHMM=mins=>`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+  const today=new Date(); const anCurent=today.getFullYear(); const lunaNum=today.getMonth()+1; const ziNum=today.getDate();
+
+  let angajati=[]; await loadAngajati();
+  async function loadAngajati(){ const snap=await getDocs(collection(db,'angajati')); angajati=[]; snap.forEach(d=>{const a=d.data(); if(a.activ!==false) angajati.push({nume:a.nume,tura:Number(a.tura||1),badge:(a.badge||slug(a.nume))});}); }
+  function findEmployeeByCode(code){return angajati.find(a=>a.badge===code||slug(a.nume)===code)||null;}
+
+  async function saveEvent(nume,tura,type){
+    await addDoc(collection(db,'pontaj_events'),{nume,tura,type,ts:Date.now(),day:new Date().toISOString().slice(0,10)});
+    if(type==='out'){
+      const all=await getDocs(query(collection(db,'pontaj_events'),where('nume','==',nume),where('day','==',new Date().toISOString().slice(0,10))));
+      const rows=[]; all.forEach(d=>rows.push(d.data()));
+      const ins=rows.filter(r=>r.type==='in').sort((a,b)=>b.ts-a.ts)[0];
+      if(!ins) return;
+      const mins=Math.round((Date.now()-ins.ts)/60000);
+      if(mins>0&&mins<960){
+        const id=`${slug(nume)}_${anCurent}_${String(lunaNum).padStart(2,'0')}_${String(ziNum).padStart(2,'0')}_tura${tura}`;
+        await setDoc(doc(db,'pontaj_lunar',id),{nume,zi:ziNum,luna:lunaNum,an:anCurent,tura,ora:toHHMM(mins)});
+      }
+    }
+  }
+
+  function toast(msg,ok=true){toastEl.textContent=msg;toastEl.className='toast '+(ok?'ok':'err');toastEl.style.display='block';setTimeout(()=>toastEl.style.display='none',1800);}
+  function addLog(line){const p=document.createElement('div');p.textContent=line;logBox.prepend(p);}
+
+  const scanInput=document.getElementById('scanInput');
+  let lastScan={};
+  scanInput.addEventListener('input',async ()=>{
+    const text=scanInput.value.trim();
+    if(!text) return;
+    scanInput.value='';
+    const now=Date.now();
+    if(text===lastScan.text&&now-lastScan.at<2000) return;
+    lastScan={text,at:now};
+    const emp=findEmployeeByCode(text);
+    if(!emp){beepErr.play();addLog(`[${new Date().toLocaleTimeString()}] Necunoscut: ${text}`);toast('Cod necunoscut',false);return;}
+    const todayEvents=await getDocs(query(collection(db,'pontaj_events'),where('nume','==',emp.nume),where('day','==',new Date().toISOString().slice(0,10))));
+    const rows=[]; todayEvents.forEach(d=>rows.push(d.data()));
+    const lastType=rows.sort((a,b)=>b.ts-a.ts)[0]?.type||'out';
+    const newType=lastType==='in'?'out':'in';
+    await saveEvent(emp.nume,emp.tura,newType);
+    beepOk.play();toast(`${emp.nume}: ${newType==='in'?'Intrare':'Ieșire'} înregistrată`,true);addLog(`[${new Date().toLocaleTimeString()}] ${emp.nume} – ${newType.toUpperCase()}`);
+  });
+</script>
+</body>
+</html>
