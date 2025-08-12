@@ -271,6 +271,39 @@
       return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     }
 
+    // ====== Helpers pentru persistență & pre-umplere ======
+    function styleCellByCode(td, val){
+      td.classList.remove("cod-CO","cod-N","cod-FP");
+      if (val === "CO") td.classList.add("cod-CO");
+      if (val === "N")  td.classList.add("cod-N");
+      if (val === "FP") td.classList.add("cod-FP");
+    }
+
+    function applyValueToCell(nume, zi, tura, val){
+      const sel = `input[data-nume="${CSS.escape(nume)}"][data-zi="${zi}"][data-tura="${tura}"]`;
+      const inp = document.querySelector(sel);
+      if (!inp) return;
+      inp.value = val;
+      const td = inp.closest('td');
+      styleCellByCode(td, val.trim().toUpperCase());
+      const tr = inp.closest('tr');
+      if (tr) calcTotalRow(tr);
+    }
+
+    async function prefillPontaj(tura){
+      // Citește orele salvate pentru luna/an curent și umple input-urile tabelului
+      const col = collection(db, "pontaj_lunar");
+      const q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("tura","==", tura));
+      const snap = await getDocs(q);
+      snap.forEach(dref => {
+        const d = dref.data();
+        if (Number(d.zi) <= 0) return;
+        if (!d.nume || !d.ora) return;
+        applyValueToCell(d.nume, d.zi, d.tura, d.ora);
+      });
+    }
+
+
     // =========================================================
     // ===============    PONTAJ LUNAR (Ture)    ===============
     // =========================================================
@@ -398,6 +431,9 @@
       buildHeadLunar(document.getElementById("tura2_head"));
       buildBodyLunar(document.getElementById("tura2_body"), t2, 2);
     }
+    // Pre-umple valorile salvate din Firebase pentru ambele ture
+    (async ()=>{ try{ await prefillPontaj(1); await prefillPontaj(2); }catch(e){ console.warn("Prefill pontaj:", e); } })();
+
     incarcaAngajatiSiConstruieste();
 
     // =========================================================
