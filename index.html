@@ -67,6 +67,10 @@
       background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:2px 3px
     }
     .total{font-weight:700;background:#112b40}
+    .delta-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700}
+    .delta-plus{background:#0e3; color:#041}
+    .delta-zero{background:#6aa1; color:#ccd}
+    .delta-minus{background:#fc0; color:#440}
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
 
     /* Coduri speciale CO / N / FP (ecran) */
@@ -226,9 +230,46 @@
       const w = new Date(y, m0, d).getDay(); // 0=Sun,6=Sat
       return w === 0 || w === 6;
     };
-    const debounce = (fn, ms=250) => {
-      let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); };
-    };
+    const debounce = (fn, ms=250) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; };
+
+    // Normalizează și validează textul pentru format "hh:mm"; acceptă și "815"/"0815".
+    function normalizeTime(raw){
+      if(!raw) return null;
+      let s = String(raw).trim().toUpperCase();
+      if (s === "CO" || s === "N" || s === "FP") return s; // coduri speciale trec direct
+
+      // Dacă vine doar cifre (ex: 815, 930, 0815)
+      if (/^\d{3,4}$/.test(s)) {
+        if (s.length === 3) s = `0${s}`; // 3 cifre -> prefix 0
+        const h = Number(s.slice(0,2));
+        const m = Number(s.slice(2,4));
+        return validateAndFormat(h, m);
+      }
+      // forme cu două numere separate de : sau .
+      const m1 = s.match(/^(\d{1,2})[:\.](\d{1,2})$/);
+      if (m1) {
+        const h = Number(m1[1]);
+        const m = Number(m1[2]);
+        return validateAndFormat(h, m);
+      }
+      // deja în format corect "hh:mm"?
+      const m2 = s.match(/^(\d{1,2}):(\d{2})$/);
+      if (m2) {
+        const h = Number(m2[1]);
+        const m = Number(m2[2]);
+        return validateAndFormat(h, m);
+      }
+      return null; // invalid
+    }
+
+    function validateAndFormat(h, m){
+      if (isNaN(h)||isNaN(m)) return null;
+      if (h < 0 || m < 0 || m > 59) return null;
+      // Accept maxim 24:00 (nu 24:xx)
+      if (h > 24) return null;
+      if (h === 24 && m !== 0) return null;
+      return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
+    }
 
     // =========================================================
     // ===============    PONTAJ LUNAR (Ture)    ===============
@@ -262,6 +303,9 @@
           inp.type="text"; inp.placeholder="hh:mm";
           inp.setAttribute("list","coduriPontaj");
           inp.dataset.nume=nume; inp.dataset.zi=zi; inp.dataset.tura=tura;
+          inp.setAttribute("pattern","^((?:[01]?\\d|2[0-4]):[0-5]\\d|CO|N|FP)$");
+          inp.title = "Format permis: hh:mm (max 24:00) sau CO / N / FP";
+          inp.inputMode = "numeric";
 
           const markCode = (val)=>{
             td.classList.remove("cod-CO","cod-N","cod-FP");
@@ -272,10 +316,17 @@
 
           inp.addEventListener("input", ()=> markCode(inp.value.trim().toUpperCase()));
           inp.addEventListener("change", async ()=>{
-            inp.value = inp.value.trim().toUpperCase();
-            markCode(inp.value);
+            const norm = normalizeTime(inp.value);
+            if (norm === null) {
+              inp.setCustomValidity("Introduceți ore în format hh:mm (max 24:00) sau CO/N/FP");
+              inp.reportValidity();
+              return;
+            }
+            inp.setCustomValidity("");
+            inp.value = norm;
+            markCode(norm);
             calcTotalRow(tr);
-            await setPontajFirebase(nume, zi, inp.value, tura);
+            await setPontajFirebase(nume, zi, norm, tura);
           });
 
           td.appendChild(inp);
@@ -292,46 +343,49 @@
 
     function calcTotalRow(tr){
       const inputs = tr.querySelectorAll("input");
-      let totalMin=0;
+      let totalMin=0, zileLucrate=0;
       inputs.forEach(i=>{
         const v = (i.value||"").trim().toUpperCase();
         if (v==="CO" || v==="N" || v==="FP") return;
-        if(/^\d{1,2}:\d{2}$/.test(v)){
-          const [h,m] = v.split(":").map(Number);
-          if(!isNaN(h) && !isNaN(m)) totalMin += h*60+m;
+        const m = v.match(/^(\d{1,2}):(\d{2})$/);
+        if(m){
+          const h = Number(m[1]); const mm = Number(m[2]);
+          if(!isNaN(h) && !isNaN(mm)) { totalMin += h*60+mm; zileLucrate++; }
         }
       });
       const H = Math.floor(totalMin/60), M = totalMin%60;
-      tr.querySelector(".total").textContent = `${H}h ${M}m`;
+      const normaZi = 8*60; // 8h/zi
+      const normaTotala = zileLucrate * normaZi;
+      const diff = totalMin - normaTotala; // >0 extra, <0 deficit
+
+      const totalCell = tr.querySelector(".total");
+      totalCell.textContent = `${H}h ${M}m`;
+      totalCell.title = `Zile lucrate: ${zileLucrate}\nNormă: ${Math.floor(normaTotala/60)}h ${normaTotala%60}m\nDiferență: ${diff>=0?'+':''}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
+
+      // badge vizual
+      let badge = totalCell.querySelector('.delta-badge');
+      if(!badge){ badge = document.createElement('span'); badge.className='delta-badge'; totalCell.appendChild(badge); }
+      const sign = diff === 0 ? 0 : (diff>0?1:-1);
+      badge.className = 'delta-badge ' + (sign>0?'delta-plus':sign<0?'delta-minus':'delta-zero');
+      const signTxt = diff>0?'+':(diff<0?'-':'±');
+      const dH = Math.floor(Math.abs(diff)/60), dM = Math.abs(diff)%60;
+      badge.textContent = diff===0 ? 'la normă' : `${signTxt}${dH}h ${dM}m`;
     }
 
     async function setPontajFirebase(nume, zi, ora, tura){
       const lunaStr = String(lunaNum).padStart(2,"0");
       const ziStr   = String(zi).padStart(2,"0");
       const idDoc = `${slug(nume)}_${anCurent}_${lunaStr}_${ziStr}_tura${tura}`;
-      await setDoc(doc(db,"pontaj_lunar",idDoc),{
-        nume:nume, zi:zi, luna:lunaNum, an:anCurent, ora:ora, tura:tura
-      });
+      await setDoc(doc(db,"pontaj_lunar",idDoc),{ nume:nume, zi:zi, luna:lunaNum, an:anCurent, ora:ora, tura:tura });
     }
 
-    const _switchTuraBase = (id)=>{
-      document.getElementById("tura1").style.display="none";
-      document.getElementById("tura2").style.display="none";
-      document.getElementById(id).style.display="";
-    };
-    window.switchTura = (id)=>{
-      _switchTuraBase(id);
-    };
+    const _switchTuraBase = (id)=>{ document.getElementById("tura1").style.display="none"; document.getElementById("tura2").style.display="none"; document.getElementById(id).style.display=""; };
+    window.switchTura = (id)=>{ _switchTuraBase(id); };
 
     async function incarcaAngajatiSiConstruieste(){
       const t1 = [], t2 = [];
       const snap = await getDocs(collection(db,"angajati"));
-      snap.forEach(d=>{
-        const a = d.data();
-        if(a.activ === false) return;
-        if(Number(a.tura) === 1) t1.push(a.nume);
-        if(Number(a.tura) === 2) t2.push(a.nume);
-      });
+      snap.forEach(d=>{ const a = d.data(); if(a.activ === false) return; if(Number(a.tura) === 1) t1.push(a.nume); if(Number(a.tura) === 2) t2.push(a.nume); });
 
       document.getElementById("tura1_head").innerHTML = "<th>Nume</th>";
       document.getElementById("tura2_head").innerHTML = "<th>Nume</th>";
@@ -362,17 +416,10 @@
     function buildHeadAdmin(){
       adminHead.innerHTML="";
       const cells=["Nume","Tura", ...Array.from({length:31},(_,i)=>String(i+1)),"Total"];
-      for(const c of cells){
-        const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th);
-      }
+      for(const c of cells){ const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th); }
       const lunaSel = Number(ddlLuna.value || lunaNum);
       const m0 = lunaSel-1, y = anCurent;
-      adminHead.querySelectorAll("th").forEach((th,i)=>{
-        if(i>=2 && i<=32){
-          const zi = i-1;
-          if (isWeekend(y,m0,zi)) th.classList.add("weekend");
-        }
-      });
+      adminHead.querySelectorAll("th").forEach((th,i)=>{ if(i>=2 && i<=32){ const zi = i-1; if (isWeekend(y,m0,zi)) th.classList.add("weekend"); } });
     }
 
     async function incarcaAdmin(){
@@ -388,7 +435,7 @@
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
 
         const key = `${d.nume}_${d.tura}_${d.luna}`;
-        if(!map[key]) map[key] = {nume:d.nume, tura:d.tura, luna:d.luna, totalMin:0, zile:{}};
+        if(!map[key]) map[key] = {nume:d.nume, tura:d.tura, luna:d.luna, totalMin:0, zile:{}, zileLucrate:0};
         map[key].zile[d.zi] = d.ora || "";
 
         const v = String(d.ora||"").trim().toUpperCase();
@@ -396,7 +443,7 @@
           const mm = v.match(/^(\d{1,2}):(\d{2})$/);
           if (mm){
             const h = Number(mm[1]), m = Number(mm[2]);
-            if(!isNaN(h)&&!isNaN(m)) map[key].totalMin += h*60+m;
+            if(!isNaN(h)&&!isNaN(m)) { map[key].totalMin += h*60+m; map[key].zileLucrate++; }
           }
         }
       });
@@ -404,20 +451,21 @@
       adminBody.innerHTML="";
       let count=0;
       Object.values(map).forEach(p=>{
+        const normaTot = p.zileLucrate * 8 * 60;
+        const diff = p.totalMin - normaTot;
+        const totalTxt = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
+        const diffTxt = diff===0?"la normă":`${diff>0?'+':'-'}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
         const tr=document.createElement("tr");
-        const total = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
         tr.innerHTML = `
           <td class="name">${p.nume}</td>
           <td>${p.tura}</td>
           ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
-          <td class="total">${total}</td>
+          <td class="total" title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m\nDiferență: ${diffTxt}">${totalTxt} <span class="delta-badge ${diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero'}">${diff===0?'la normă':diffTxt}</span></td>
         `;
         adminBody.appendChild(tr);
         count++;
       });
-      if(!count){
-        adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
-      }
+      if(!count){ adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`; }
       statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
       setLoading(false);
     }
@@ -425,19 +473,14 @@
     ddlLuna.addEventListener("change", incarcaAdmin);
     ddlTura.addEventListener("change", incarcaAdmin);
     txtNume.addEventListener("input", debounce(incarcaAdmin, 250));
-    resetFiltre.addEventListener("click", ()=>{
-      ddlLuna.value=""; ddlTura.value=""; txtNume.value="";
-      incarcaAdmin();
-    });
+    resetFiltre.addEventListener("click", ()=>{ ddlLuna.value=""; ddlTura.value=""; txtNume.value=""; incarcaAdmin(); });
     reloadBtn.addEventListener("click", incarcaAdmin);
 
     function setLoading(is){ loadSpin.style.display = is ? "inline-block" : "none"; reloadBtn.disabled = !!is; }
 
     function getAdminTableData(){
       const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
-      const rows = [...document.querySelectorAll("#admin_body tr")].map(tr =>
-        [...tr.querySelectorAll("td")].map(td => td.textContent.trim())
-      );
+      const rows = [...document.querySelectorAll("#admin_body tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.textContent.trim()));
       return {head, rows};
     }
 
@@ -469,21 +512,18 @@
       const headerRow = ws.addRow(head);
       headerRow.font = {bold:true};
       headerRow.alignment = {vertical:"middle", horizontal:"center"};
-      headerRow.eachCell(c=>{
-        c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFCCE5FF"}};
-        c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
-      });
+      headerRow.eachCell(c=>{ c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFCCE5FF"}}; c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}}; });
 
       const m0 = lunaSel-1, y = anCurent;
       for(let zi=1; zi<=31; zi++){
-        const col = 2 + zi;
+        const col = 2 + zi; // 1=Nume,2=Tura => zi=1 e col 3
         if(col<=head.length && isWeekend(y,m0,zi)){
           const cell = headerRow.getCell(col);
           cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillWeekend}};
         }
       }
 
-      const startColZile = 3;
+      const startColZile = 3; // col 3..33 sunt zilele
       rows.forEach(r=>{
         const row = ws.addRow(r);
         row.eachCell((c, colIndex)=>{
@@ -518,10 +558,7 @@
     // ============ EXPORT PDF ============
     window.exportPDFAdmin = async function(){
       const {head, rows} = getAdminTableData();
-      if (!rows.length || (rows.length===1 && rows[0].length===1)) { 
-        alert("Nu există date."); 
-        return; 
-      }
+      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
 
       const now = new Date();
       const lunaSel = Number(ddlLuna.value || lunaNum);
@@ -543,13 +580,7 @@
       doc.setFont("helvetica","normal"); doc.setFontSize(10);
       doc.text(gen, 160, 54);
 
-      const headStyles = head.map((_, i) => {
-        if (i >= 2) {
-          const zi = i - 1;
-          if (isWeekend(anCurent, lunaSel - 1, zi)) return { fillColor: rgbWeekendHead };
-        }
-        return null;
-      });
+      const headStyles = head.map((_, i) => { if (i >= 2) { const zi = i - 1; if (isWeekend(anCurent, lunaSel - 1, zi)) return { fillColor: rgbWeekendHead }; } return null; });
 
       doc.autoTable({
         startY: 74,
@@ -588,12 +619,7 @@
     async function fetchToBase64(url){
       const res = await fetch(url);
       const blob = await res.blob();
-      return await new Promise((resolve,reject)=>{
-        const reader = new FileReader();
-        reader.onload = ()=> resolve(reader.result);
-        reader.onerror = reject;
-        reader.readAsDataURL(blob);
-      });
+      return await new Promise((resolve,reject)=>{ const reader = new FileReader(); reader.onload = ()=> resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
     }
 
     document.addEventListener("DOMContentLoaded", ()=> { incarcaAdmin(); });
@@ -669,9 +695,7 @@
       if(!confirm(confirmMsg)) return;
 
       let turaViz = null;
-      if (scope === 'vizibil') {
-        turaViz = (document.getElementById("tura1").style.display !== "none") ? 1 : 2;
-      }
+      if (scope === 'vizibil') { turaViz = (document.getElementById("tura1").style.display !== "none") ? 1 : 2; }
 
       const col = collection(db, "pontaj_lunar");
       let q = query(col, where("an","==", anCurent), where("luna","==", lunaNum));
@@ -679,14 +703,9 @@
 
       const snap = await getDocs(q);
       let batch = writeBatch(db), count = 0;
-
       for (const d of snap.docs) {
         const data = d.data();
-        if (Number(data.zi) > 0) {
-          batch.delete(d.ref);
-          count++;
-          if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); }
-        }
+        if (Number(data.zi) > 0) { batch.delete(d.ref); count++; if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); } }
       }
       if (count > 0) await batch.commit();
 
@@ -698,10 +717,8 @@
     window.resetPontajAngajat = async function(){
       const nume = prompt("Introdu numele COMPLET al angajatului pentru reset:");
       if(!nume) return;
-
       const turaStr = prompt("Tura (1 sau 2). Lasă gol dacă vrei ambele ture pentru acest nume:");
       const turaNum = turaStr ? Number(turaStr) : null;
-
       if(!confirm(`Șterg orele din luna curentă pentru "${nume}"${turaNum?` (tura ${turaNum})`:''}. Continui?`)) return;
 
       const col = collection(db, "pontaj_lunar");
@@ -710,14 +727,7 @@
 
       const snap = await getDocs(q);
       let batch = writeBatch(db), count = 0;
-      for (const d of snap.docs) {
-        const data = d.data();
-        if (Number(data.zi) > 0) {
-          batch.delete(d.ref);
-          count++;
-          if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); }
-        }
-      }
+      for (const d of snap.docs) { const data = d.data(); if (Number(data.zi) > 0) { batch.delete(d.ref); count++; if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); } } }
       if (count > 0) await batch.commit();
 
       alert(`Șters ${count} înregistrări pentru ${nume} în luna curentă.`);
