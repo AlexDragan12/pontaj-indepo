@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Pontaj – Lunar & Admin (unificat, cu colecția angajati) + Badge & QR</title>
+  <title>Pontaj – Lunar & Admin (unificat, cu colecția angajati) – COMPLET + Badge & QR</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -171,6 +171,7 @@
             <button class="btn ghost" onclick="editeazaAngajat()">Editează</button>
             <button class="btn danger" onclick="stergeAngajat()">Șterge</button>
             <button class="btn ghost" onclick="qrAngajat()">QR Angajat</button>
+            <button class="btn primary" onclick="descarcaQRSVG()">Descarcă QR (SVG)</button>
           </div>
         </div>
 
@@ -452,10 +453,15 @@
       buildHeadLunar(document.getElementById("tura2_head"));
       buildBodyLunar(document.getElementById("tura2_body"), t2, 2);
     }
-    // Pre-umple valorile salvate din Firebase pentru ambele ture
-    (async ()=>{ try{ await prefillPontaj(1); await prefillPontaj(2); }catch(e){ console.warn("Prefill pontaj:", e); } })();
 
-    incarcaAngajatiSiConstruieste();
+    // === INIT: Construiește tabelele întâi, apoi pre-umple din Firestore
+    (async ()=>{
+      try{
+        await incarcaAngajatiSiConstruieste();
+        await prefillPontaj(1);
+        await prefillPontaj(2);
+      }catch(e){ console.warn("Prefill pontaj:", e); }
+    })();
 
     // =========================================================
     // ===============   ADMIN (raport & mgmt)   ===============
@@ -690,19 +696,18 @@
       const tura = prompt("Introduceți tura (1 sau 2):");
       if(!nume || !tura) return alert("Date incomplete.");
 
-      // << NEW: generăm și salvăm badge-ul unic
-      const badge = genBadge();
-
+      const badge = genBadge(); // << NEW
       await setDoc(doc(db, "angajati", slug(nume)), { nume: nume, tura: Number(tura), activ: true, badge });
 
       const initId = `${slug(nume)}_${new Date().getFullYear()}_init_tura${tura}`;
       await setDoc(doc(db, "pontaj_lunar", initId), { nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura) });
 
       alert(`Angajat adăugat. Cod: ${badge}`);
-      showQR(badge, nume); // << NEW: afișăm QR pentru print
+      showQR(badge, nume); // << NEW
 
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
+      await prefillPontaj(1); await prefillPontaj(2); // se asigură că vede imediat luna curentă
     };
 
     window.stergeAngajat = async function(){
@@ -750,6 +755,7 @@
       alert("Actualizat.");
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
+      await prefillPontaj(1); await prefillPontaj(2);
     };
 
     // << NEW: afișează/generază QR pentru un angajat existent
@@ -765,6 +771,31 @@
         await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
       }
       showQR(found.badge, found.nume);
+    };
+
+    // << NEW: descarcă direct QR SVG (folosind badge)
+    window.descarcaQRSVG = async function(){
+      const nume = prompt("Numele complet pentru QR (SVG):");
+      if (!nume) return;
+      const snap = await getDocs(collection(db, "angajati"));
+      let found = null;
+      snap.forEach(d => { const a = d.data(); if (a.activ !== false && a.nume === nume) found = a; });
+      if (!found) { alert("Nu am găsit angajatul."); return; }
+      if (!found.badge) {
+        const newBadge = genBadge();
+        await setDoc(doc(db, "angajati", slug(nume)), { badge: newBadge }, { merge: true });
+        found.badge = newBadge;
+      }
+      const url = "https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=0&format=svg&data=" + encodeURIComponent(found.badge);
+      try {
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("QR server response not ok");
+        const blob = await res.blob();
+        const fname = `QR_${slug(nume)}_${found.badge}.svg`;
+        saveAs(blob, fname);
+      } catch (e) {
+        window.open(url, "_blank");
+      }
     };
 
     // ==================== RESET PONTAJ ====================
@@ -792,6 +823,7 @@
       alert(`Șters ${count} înregistrări din luna curentă.`);
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
+      await prefillPontaj(1); await prefillPontaj(2);
     };
 
     window.resetPontajAngajat = async function(){
@@ -813,6 +845,7 @@
       alert(`Șters ${count} înregistrări pentru ${nume} în luna curentă.`);
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
+      await prefillPontaj(1); await prefillPontaj(2);
     };
 
   </script>
