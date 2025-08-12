@@ -2,7 +2,7 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Pontaj – Lunar & Admin (unificat, cu colecția angajati) – COMPLET + Badge & QR</title>
+  <title>Pontaj – Lunar & Admin (fără QR)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root{
@@ -37,7 +37,7 @@
     label{font-size:12px;opacity:.85}
     select,input{
       padding:8px 10px;font-size:13px;border-radius:10px;border:1px solid var(--border);
-      background:#102338;color:var(--text)
+      background:#102338;color:#fff
     }
     .btn{
       padding:8px 12px;border-radius:10px;border:1px solid var(--border);cursor:pointer;font-weight:700;font-size:13px
@@ -45,11 +45,10 @@
     .btn.primary{background:var(--accent);color:#04202e;border:none}
     .btn.ghost{background:#14324a}
     .btn.danger{background:var(--danger);color:#fff;border:none}
-    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#102338;border:1px solid var(--border);opacity:.9}
+    .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#102338;border:1px solid #2e3b55;opacity:.9}
 
     .tab-content{display:none}
     .tab-content.active{display:block}
-
     .scroll-x{overflow-x:auto}
 
     table{width:100%;border-collapse:collapse;background:#0f2133;border-radius:12px;overflow:hidden}
@@ -60,12 +59,13 @@
     td.name{background:#123;font-weight:600}
     th.weekend{background:linear-gradient(180deg,#0f4b6d, #0b3b58)}
     td.weekend{background:var(--wkbg)}
-
     th,td{padding:6px;font-size:11px}
+
     input[type="text"]{
       width:36px;min-width:36px;text-align:center;font-size:10px;
       background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:2px 3px
     }
+
     .total{font-weight:700;background:#112b40}
     .delta-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700}
     .delta-plus{background:#0e3; color:#041}
@@ -73,12 +73,12 @@
     .delta-minus{background:#fc0; color:#440}
     .section-title{font-size:14px;margin:0 0 10px 4px;color:#b7cdf0}
 
-    /* Coduri speciale CO / N / FP (ecran) */
+    /* Celule cu coduri speciale CO / N / FP */
     .cod-CO input{ background:#e8f7e8 !important; border-color:#9ed39e !important; color:#0f3d0f !important; }
     .cod-N  input{ background:#ffeaea !important; border-color:#f5a5a5 !important; color:#651010 !important; }
     .cod-FP input{ background:#fff8e6 !important; border-color:#f1d28a !important; color:#5a4100 !important; }
 
-    /* Mic spinner */
+    /* Spinner mic */
     .spinner{width:16px;height:16px;border:2px solid #2c4761;border-top-color:#7fb3ff;border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
   </style>
@@ -111,32 +111,7 @@
             <button class="btn ghost" onclick="resetPontaj('vizibil')">Resetează luna (tura vizibilă)</button>
             <button class="btn ghost" onclick="resetPontajAngajat()">Resetează un angajat</button>
           </div>
-        
-        <!-- Badge Options UI -->
-        <div class="toolbar" id="badgeOpts" style="margin-top:8px">
-          <div class="left">
-            <label>Badge
-              <select id="badgeSize">
-                <option value="ID-1" selected>ID-1 (85.6×54 mm)</option>
-                <option value="90x60">90×60 mm</option>
-              </select>
-            </label>
-            <label>QR (mm)
-              <input id="badgeQr" type="number" min="24" max="44" step="1" value="36" />
-            </label>
-            <label>Font nume (mm)
-              <input id="badgeName" type="number" min="3" max="8" step="0.1" value="5.2" />
-            </label>
-            <label>Font cod (mm)
-              <input id="badgeCode" type="number" min="2" max="6" step="0.1" value="3.6" />
-            </label>
-            <label class="pill">
-              <input id="badgePrint" type="checkbox" checked style="vertical-align:middle;margin-right:6px" /> Print la deschidere
-            </label>
-            <button class="btn ghost" onclick="previewBadgeFromPrompt()">Previzualizează Badge</button>
-          </div>
         </div>
-</div>
 
         <div class="scroll-x">
           <table id="tura1">
@@ -195,47 +170,17 @@
             <button class="btn primary" onclick="adaugaAngajat()">Adaugă</button>
             <button class="btn ghost" onclick="editeazaAngajat()">Editează</button>
             <button class="btn danger" onclick="stergeAngajat()">Șterge</button>
-            <button class="btn ghost" onclick="qrAngajat()">QR Angajat</button>
-            <button class="btn primary" onclick="descarcaQRSVG()">Descarcă QR (SVG)</button>
-          </div>
-        
-        <!-- Badge Options UI -->
-        <div class="toolbar" id="badgeOpts" style="margin-top:8px">
-          <div class="left">
-            <label>Badge
-              <select id="badgeSize">
-                <option value="ID-1" selected>ID-1 (85.6×54 mm)</option>
-                <option value="90x60">90×60 mm</option>
-              </select>
-            </label>
-            <label>QR (mm)
-              <input id="badgeQr" type="number" min="24" max="44" step="1" value="36" />
-            </label>
-            <label>Font nume (mm)
-              <input id="badgeName" type="number" min="3" max="8" step="0.1" value="5.2" />
-            </label>
-            <label>Font cod (mm)
-              <input id="badgeCode" type="number" min="2" max="6" step="0.1" value="3.6" />
-            </label>
-            <label class="pill">
-              <input id="badgePrint" type="checkbox" checked style="vertical-align:middle;margin-right:6px" /> Print la deschidere
-            </label>
-            <button class="btn ghost" onclick="previewBadgeFromPrompt()">Previzualizează Badge</button>
           </div>
         </div>
-</div>
 
         <div class="scroll-x">
           <table>
-            <thead>
-              <tr id="admin_head"></tr>
-            </thead>
+            <thead><tr id="admin_head"></tr></thead>
             <tbody id="admin_body"><tr><td>Se încarcă…</td></tr></tbody>
           </table>
         </div>
       </div>
     </section>
-
   </div>
 
   <!-- ========== SCRIPT APLICAȚIE (Firebase + module) ========== -->
@@ -251,7 +196,7 @@
       apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
       authDomain: "pontaj2025.firebaseapp.com",
       projectId: "pontaj2025",
-      storageBucket: "pontaj2025.firebasestorage.app",
+      storageBucket: "pontaj2025.appspot.com",
       messagingSenderId: "732863008010",
       appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
     };
@@ -261,136 +206,15 @@
     const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
     const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
     const today = new Date();
-    const lunaIdx = today.getMonth();         // 0..11
-    const lunaNum = lunaIdx + 1;              // 1..12
+    const lunaIdx = today.getMonth();   // 0..11
+    const lunaNum = lunaIdx + 1;        // 1..12
     const anCurent = today.getFullYear();
     const zileInLuna = new Date(anCurent, lunaIdx + 1, 0).getDate();
 
-    // === Helpers QR / Badge ===
-    function getBadgeOpts(){
-      const size = (document.getElementById("badgeSize")||{}).value || "ID-1";
-      const qrMM = Number((document.getElementById("badgeQr")||{}).value || 36);
-      const fontNameMM = Number((document.getElementById("badgeName")||{}).value || 5.2);
-      const fontCodeMM = Number((document.getElementById("badgeCode")||{}).value || 3.6);
-      const showPrint = !!((document.getElementById("badgePrint")||{}).checked ?? true);
-      return { size, qrMM, fontNameMM, fontCodeMM, showPrint };
-    }
-    window.previewBadgeFromPrompt = async function(){
-      const nume = prompt("Numele complet pentru previzualizare badge:");
-      if(!nume) return;
-      const snap = await getDocs(collection(db,"angajati"));
-      let found=null;
-      snap.forEach(d=>{ const a=d.data(); if(a.activ!==false && a.nume===nume) found=a; });
-      if(!found){ alert("Nu am găsit angajatul."); return; }
-      if(!found.badge){
-        found.badge = genBadge();
-        await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
-      }
-      showBadge(found.badge, found.nume, getBadgeOpts());
-    };
-
+    // Generare cod intern (opțional) pentru angajat
     function genBadge(len=8){
       const abc = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'; // fără 0/O/I/1
       return Array.from({length:len}, ()=> abc[Math.floor(Math.random()*abc.length)]).join('');
-    }
-    
-    // === Badge QR (ecuson 85.6 x 54 mm, portret) ===
-    function showBadge(cod, nume, opt = {}) {
-      const {
-        size = "ID-1",    // "ID-1" (85.6x54mm) sau "90x60"
-        qrMM = 36,        // latura QR în mm
-        fontNameMM = 5.2, // mărimea fontului pentru nume (mm)
-        fontCodeMM = 3.6, // mărimea fontului pentru cod (mm)
-        showPrint = true, // buton de print
-      } = opt;
-
-      const dims = size === "90x60" ? { w: 90, h: 60 } : { w: 85.6, h: 54 };
-      const qrURL = "https://api.qrserver.com/v1/create-qr-code/?format=svg&margin=0&data=" + encodeURIComponent(cod);
-
-      const html = `
-<!doctype html><html><head><meta charset="utf-8">
-<title>Badge ${"${"}nume{"}"} </title>
-<style>
-  :root{ --w:${"${"}dims.w{"}"}mm; --h:${"${"}dims.h{"}"}mm; --qr:${"${"}qrMM{"}"}mm; --pad:4mm; --radius:3mm; }
-  *{box-sizing:border-box}
-  html,body{height:100%;margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:#f3f6fb}
-  .stage{min-height:100%;display:grid;place-items:center;padding:12px}
-  .card{
-    width:var(--w); height:var(--h); background:#fff; color:#0e2030;
-    border:1px solid #ccd8e6; border-radius:var(--radius);
-    padding:var(--pad); display:grid; grid-template-rows:auto 1fr auto; gap:3mm;
-    box-shadow:0 2px 10px rgba(0,0,0,.06);
-  }
-  .top{display:flex;align-items:center;justify-content:space-between}
-  .brand{font-weight:700;font-size:3.4mm; letter-spacing:.2mm; color:#0b3d5c}
-  .qr{width:var(--qr); height:var(--qr); border:1px solid #e3edf6; border-radius:2mm; padding:1mm; display:grid; place-items:center}
-  .mid{display:grid; place-items:center; text-align:center}
-  .name{font-weight:800; font-size:${"${"}fontNameMM{"}"}mm; line-height:1.05}
-  .code{font-weight:700; font-size:${"${"}fontCodeMM{"}"}mm; color:#2e4760; letter-spacing:.4mm; opacity:.85}
-  .bottom{display:flex; gap:4mm; justify-content:center}
-  .btn{
-    appearance:none; border:none; background:#0ea5b9; color:#04202e; font-weight:800;
-    padding:3mm 5mm; border-radius:9mm; cursor:pointer;
-  }
-  @page{
-    size: ${"${"}dims.w{"}"}mm ${"${"}dims.h{"}"}mm;
-    margin: 0;
-  }
-  @media print{
-    body{ background:#fff; }
-    .stage{ padding:0 }
-    .bottom{ display:none }
-    .card{ box-shadow:none; border:0 }
-  }
-</style>
-</head>
-<body>
-  <div class="stage">
-    <div class="card" role="article" aria-label="Badge angajat">
-      <div class="top">
-        <div class="brand">ECUSON ANGAJAT</div>
-        <div class="qr"><img src="${"${"}qrURL{"}"}" alt="QR ${"${"}nume{"}"}" style="width:100%;height:100%"></div>
-      </div>
-      <div class="mid">
-        <div class="name">${"${"}nume{"}"} </div>
-        <div class="code">${"${"}cod{"}"} </div>
-      </div>
-      <div class="bottom">
-        ${"${"}showPrint ? '<button class="btn" onclick="window.print()">Printează</button>' : ''{"}"}
-        <button class="btn" onclick="downloadSVG()">Descarcă QR (SVG)</button>
-      </div>
-    </div>
-  </div>
-<script>
-  function downloadSVG(){
-    const url = "${"${"}qrURL{"}"}";
-    fetch(url).then(r=>r.blob()).then(b=>{
-      const a = document.createElement('a');
-      a.href = URL.createObjectURL(b);
-      a.download = "QR_"+("${"${"}nume{"}"}").replace(/\s+/g,'_')+"_"+("${"${"}cod{"}"}")+".svg";
-      document.body.appendChild(a); a.click(); a.remove();
-      setTimeout(()=>URL.revokeObjectURL(a.href), 500);
-    }).catch(()=>{ window.open(url, "_blank"); });
-  }
-</script>
-</body></html>`;
-
-      const w = window.open("", "_blank", "width=520,height=720");
-      if (w) { w.document.write(html); w.document.close(); }
-      else { alert(`Nume: ${"${"}nume{"}"}
-Cod: ${"${"}cod{"}"}`); }
-    }
-
-</title></head>
-        <body style="font-family:system-ui;display:grid;place-items:center;gap:10px;padding:16px;background:#f7f9fc">
-          <h3 style="margin:0">${nume}</h3>
-          <img src="${url}" alt="QR" style="border:1px solid #ccc;padding:6px;border-radius:8px"/>
-          <div style="font-weight:700;letter-spacing:2px;font-size:18px">${cod}</div>
-          <button onclick="window.print()" style="padding:8px 12px;border-radius:8px;cursor:pointer">Printează</button>
-        </body></html>`;
-      const w = window.open("", "_blank", "width=360,height=420");
-      if(w){ w.document.write(html); w.document.close(); }
-      else { alert(`Cod: ${cod}`); }
     }
 
     // ---------- TAB SWITCH ----------
@@ -411,46 +235,33 @@ Cod: ${"${"}cod{"}"}`); }
     };
     const debounce = (fn, ms=250) => { let t; return (...args)=>{ clearTimeout(t); t=setTimeout(()=>fn(...args), ms); }; };
 
-    // Normalizează și validează textul pentru format "hh:mm"; acceptă și "815"/"0815".
+    // Normalizează "hh:mm"; acceptă și "815"/"0815".
     function normalizeTime(raw){
       if(!raw) return null;
       let s = String(raw).trim().toUpperCase();
-      if (s === "CO" || s === "N" || s === "FP") return s; // coduri speciale trec direct
+      if (s === "CO" || s === "N" || s === "FP") return s;
 
-      // Dacă vine doar cifre (ex: 815, 930, 0815)
       if (/^\d{3,4}$/.test(s)) {
-        if (s.length === 3) s = `0${s}`; // 3 cifre -> prefix 0
+        if (s.length === 3) s = `0${s}`;
         const h = Number(s.slice(0,2));
         const m = Number(s.slice(2,4));
         return validateAndFormat(h, m);
       }
-      // forme cu două numere separate de : sau .
       const m1 = s.match(/^(\d{1,2})[:\.](\d{1,2})$/);
-      if (m1) {
-        const h = Number(m1[1]);
-        const m = Number(m1[2]);
-        return validateAndFormat(h, m);
-      }
-      // deja în format corect "hh:mm"?
+      if (m1) return validateAndFormat(Number(m1[1]), Number(m1[2]));
       const m2 = s.match(/^(\d{1,2}):(\d{2})$/);
-      if (m2) {
-        const h = Number(m2[1]);
-        const m = Number(m2[2]);
-        return validateAndFormat(h, m);
-      }
-      return null; // invalid
+      if (m2) return validateAndFormat(Number(m2[1]), Number(m2[2]));
+      return null;
     }
 
     function validateAndFormat(h, m){
       if (isNaN(h)||isNaN(m)) return null;
       if (h < 0 || m < 0 || m > 59) return null;
-      // Accept maxim 24:00 (nu 24:xx)
       if (h > 24) return null;
       if (h === 24 && m !== 0) return null;
       return `${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`;
     }
 
-    // ====== Helpers pentru persistență & pre-umplere ======
     function styleCellByCode(td, val){
       td.classList.remove("cod-CO","cod-N","cod-FP");
       if (val === "CO") td.classList.add("cod-CO");
@@ -470,7 +281,6 @@ Cod: ${"${"}cod{"}"}`); }
     }
 
     async function prefillPontaj(tura){
-      // Citește orele salvate pentru luna/an curent și umple input-urile tabelului
       const col = collection(db, "pontaj_lunar");
       const q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("tura","==", tura));
       const snap = await getDocs(q);
@@ -482,10 +292,7 @@ Cod: ${"${"}cod{"}"}`); }
       });
     }
 
-
-    // =========================================================
-    // ===============    PONTAJ LUNAR (Ture)    ===============
-    // =========================================================
+    // ================== PONTAJ LUNAR (Ture) ==================
     function buildHeadLunar(elHead){
       for(let zi=1; zi<=zileInLuna; zi++){
         const th=document.createElement("th");
@@ -566,15 +373,14 @@ Cod: ${"${"}cod{"}"}`); }
         }
       });
       const H = Math.floor(totalMin/60), M = totalMin%60;
-      const normaZi = 8*60; // 8h/zi
+      const normaZi = 8*60;
       const normaTotala = zileLucrate * normaZi;
-      const diff = totalMin - normaTotala; // >0 extra, <0 deficit
+      const diff = totalMin - normaTotala;
 
       const totalCell = tr.querySelector(".total");
       totalCell.textContent = `${H}h ${M}m`;
       totalCell.title = `Zile lucrate: ${zileLucrate}\nNormă: ${Math.floor(normaTotala/60)}h ${normaTotala%60}m\nDiferență: ${diff>=0?'+':''}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
 
-      // badge vizual
       let badge = totalCell.querySelector('.delta-badge');
       if(!badge){ badge = document.createElement('span'); badge.className='delta-badge'; totalCell.appendChild(badge); }
       const sign = diff === 0 ? 0 : (diff>0?1:-1);
@@ -591,27 +397,37 @@ Cod: ${"${"}cod{"}"}`); }
       await setDoc(doc(db,"pontaj_lunar",idDoc),{ nume:nume, zi:zi, luna:lunaNum, an:anCurent, ora:ora, tura:tura });
     }
 
-    const _switchTuraBase = (id)=>{ document.getElementById("tura1").style.display="none"; document.getElementById("tura2").style.display="none"; document.getElementById(id).style.display=""; };
-    window.switchTura = (id)=>{ _switchTuraBase(id); };
+    const switchTuraBase = (id)=>{ document.getElementById("tura1").style.display="none"; document.getElementById("tura2").style.display="none"; document.getElementById(id).style.display=""; };
+    window.switchTura = (id)=>{ switchTuraBase(id); };
 
+    // Store previous state to avoid unnecessary DOM updates
+    let prevT1 = [], prevT2 = [], prevZileInLuna = 0;
     async function incarcaAngajatiSiConstruieste(){
       const t1 = [], t2 = [];
       const snap = await getDocs(collection(db,"angajati"));
-      snap.forEach(d=>{ const a = d.data(); if(a.activ === false) return; if(Number(a.tura) === 1) t1.push(a.nume); if(Number(a.tura) === 2) t2.push(a.nume); });
+      snap.forEach(d=>{ const a=d.data(); if(a.activ === false) return; if(Number(a.tura) === 1) t1.push(a.nume); if(Number(a.tura) === 2) t2.push(a.nume); });
 
-      document.getElementById("tura1_head").innerHTML = "<th>Nume</th>";
-      document.getElementById("tura2_head").innerHTML = "<th>Nume</th>";
-      document.getElementById("tura1_body").innerHTML = "";
-      document.getElementById("tura2_body").innerHTML = "";
+      const zileChanged = prevZileInLuna !== zileInLuna;
+      const t1Changed = t1.length !== prevT1.length || t1.some((v,i)=>v!==prevT1[i]);
+      const t2Changed = t2.length !== prevT2.length || t2.some((v,i)=>v!==prevT2[i]);
 
-      buildHeadLunar(document.getElementById("tura1_head"));
-      buildBodyLunar(document.getElementById("tura1_body"), t1, 1);
-
-      buildHeadLunar(document.getElementById("tura2_head"));
-      buildBodyLunar(document.getElementById("tura2_body"), t2, 2);
+      if (zileChanged || t1Changed) {
+        document.getElementById("tura1_head").innerHTML = "<th>Nume</th>";
+        document.getElementById("tura1_body").innerHTML = "";
+        buildHeadLunar(document.getElementById("tura1_head"));
+        buildBodyLunar(document.getElementById("tura1_body"), t1, 1);
+        prevT1 = [...t1];
+      }
+      if (zileChanged || t2Changed) {
+        document.getElementById("tura2_head").innerHTML = "<th>Nume</th>";
+        document.getElementById("tura2_body").innerHTML = "";
+        buildHeadLunar(document.getElementById("tura2_head"));
+        buildBodyLunar(document.getElementById("tura2_body"), t2, 2);
+        prevT2 = [...t2];
+      }
+      prevZileInLuna = zileInLuna;
     }
 
-    // === INIT: Construiește tabelele întâi, apoi pre-umple din Firestore
     (async ()=>{
       try{
         await incarcaAngajatiSiConstruieste();
@@ -620,9 +436,7 @@ Cod: ${"${"}cod{"}"}`); }
       }catch(e){ console.warn("Prefill pontaj:", e); }
     })();
 
-    // =========================================================
-    // ===============   ADMIN (raport & mgmt)   ===============
-    // =========================================================
+    // ================== ADMIN (raport & mgmt) ==================
     const adminHead = document.getElementById("admin_head");
     const adminBody = document.getElementById("admin_body");
     const ddlLuna   = document.getElementById("filtruLuna");
@@ -650,9 +464,7 @@ Cod: ${"${"}cod{"}"}`); }
 
       snap.forEach(dref=>{
         const d = dref.data();
-        
-        // ignoră documentele de inițializare (zi/luna = 0)
-        if (Number(d.luna) === 0 || Number(d.zi) === 0) return;
+        if (Number(d.luna) === 0 || Number(d.zi) === 0) return; // ignora init
         if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
         if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
         if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
@@ -746,7 +558,7 @@ Cod: ${"${"}cod{"}"}`); }
         }
       }
 
-      const startColZile = 3; // col 3..33 sunt zilele
+      const startColZile = 3; // col 3..33
       rows.forEach(r=>{
         const row = ws.addRow(r);
         row.eachCell((c, colIndex)=>{
@@ -842,10 +654,17 @@ Cod: ${"${"}cod{"}"}`); }
     async function fetchToBase64(url){
       const res = await fetch(url);
       const blob = await res.blob();
-      return await new Promise((resolve,reject)=>{ const reader = new FileReader(); reader.onload = ()=> resolve(reader.result); reader.onerror = reject; reader.readAsDataURL(blob); });
+      return await new Promise((resolve,reject)=>{
+        const reader = new FileReader();
+        reader.onload = ()=> resolve(reader.result);
+        reader.onerror = reject;
+        reader.readAsDataURL(blob);
+      });
     }
-
-    document.addEventListener("DOMContentLoaded", ()=> { incarcaAdmin(); });
+    document.addEventListener("DOMContentLoaded", ()=> {
+      const adminTab = document.querySelector('.tab[data-tab="admin"]');
+      if (adminTab && adminTab.classList.contains("active")) incarcaAdmin();
+    });
 
     // ==================== CRUD angajați ====================
     window.adaugaAngajat = async function(){
@@ -853,18 +672,17 @@ Cod: ${"${"}cod{"}"}`); }
       const tura = prompt("Introduceți tura (1 sau 2):");
       if(!nume || !tura) return alert("Date incomplete.");
 
-      const badge = genBadge(); // << NEW
+      const badge = genBadge(); // cod intern, dacă vrei să-l folosești ulterior
       await setDoc(doc(db, "angajati", slug(nume)), { nume: nume, tura: Number(tura), activ: true, badge });
 
       const initId = `${slug(nume)}_${new Date().getFullYear()}_init_tura${tura}`;
       await setDoc(doc(db, "pontaj_lunar", initId), { nume, zi:0, luna:0, an:new Date().getFullYear(), ora:"00:00", tura:Number(tura) });
 
-      alert(`Angajat adăugat. Cod: ${badge}`);
-      showBadge(badge, nume, getBadgeOpts()); // << NEW
+      alert(`Angajat adăugat.`);
 
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
-      await prefillPontaj(1); await prefillPontaj(2); // se asigură că vede imediat luna curentă
+      await prefillPontaj(1); await prefillPontaj(2);
     };
 
     window.stergeAngajat = async function(){
@@ -915,61 +733,22 @@ Cod: ${"${"}cod{"}"}`); }
       await prefillPontaj(1); await prefillPontaj(2);
     };
 
-    // << NEW: afișează/generază QR pentru un angajat existent
-    window.qrAngajat = async function(){
-      const nume = prompt("Numele complet pentru QR:");
-      if(!nume) return;
-      const snap = await getDocs(collection(db,"angajati"));
-      let found=null;
-      snap.forEach(d=>{ const a=d.data(); if(a.activ!==false && a.nume===nume) found=a; });
-      if(!found){ alert("Nu am găsit angajatul."); return; }
-      if(!found.badge){
-        found.badge = genBadge();
-        await setDoc(doc(db,"angajati", slug(nume)), { badge: found.badge }, { merge:true });
-      }
-      showBadge(found.badge, found.nume, getBadgeOpts());
-    };
-
-    // << NEW: descarcă direct QR SVG (folosind badge)
-    window.descarcaQRSVG = async function(){
-      const nume = prompt("Numele complet pentru QR (SVG):");
-      if (!nume) return;
-      const snap = await getDocs(collection(db, "angajati"));
-      let found = null;
-      snap.forEach(d => { const a = d.data(); if (a.activ !== false && a.nume === nume) found = a; });
-      if (!found) { alert("Nu am găsit angajatul."); return; }
-      if (!found.badge) {
-        const newBadge = genBadge();
-        await setDoc(doc(db, "angajati", slug(nume)), { badge: newBadge }, { merge: true });
-        found.badge = newBadge;
-      }
-      const url = "https://api.qrserver.com/v1/create-qr-code/?size=600x600&margin=0&format=svg&data=" + encodeURIComponent(found.badge);
-      try {
-        const res = await fetch(url);
-        if (!res.ok) throw new Error("QR server response not ok");
-        const blob = await res.blob();
-        const fname = `QR_${slug(nume)}_${found.badge}.svg`;
-        saveAs(blob, fname);
-      } catch (e) {
-        window.open(url, "_blank");
-      }
-    };
-
     // ==================== RESET PONTAJ ====================
     window.resetPontaj = async function(scope='all'){
-      const confirmMsg = scope === 'all'
-        ? "Șterg TUTUROR orele din luna curentă. Continui?"
-        : "Șterg orele din luna curentă doar pentru TURA vizibilă. Continui?";
+      let confirmMsg = "Sigur doriți să resetați pontajul?";
       if(!confirm(confirmMsg)) return;
 
-      let turaViz = null;
-      if (scope === 'vizibil') { turaViz = (document.getElementById("tura1").style.display !== "none") ? 1 : 2; }
-
+      let q;
       const col = collection(db, "pontaj_lunar");
-      let q = query(col, where("an","==", anCurent), where("luna","==", lunaNum));
-      if (turaViz) q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("tura","==", turaViz));
+      if (scope === 'vizibil') {
+        const turaViz = (document.getElementById("tura1").style.display !== "none") ? 1 : 2;
+        q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("tura","==", turaViz));
+      } else {
+        q = query(col, where("an","==", anCurent), where("luna","==", lunaNum));
+      }
 
       const snap = await getDocs(q);
+      // limit batch 500 → folosim 450 pt. siguranță
       let batch = writeBatch(db), count = 0;
       for (const d of snap.docs) {
         const data = d.data();
@@ -987,24 +766,28 @@ Cod: ${"${"}cod{"}"}`); }
       const nume = prompt("Introdu numele COMPLET al angajatului pentru reset:");
       if(!nume) return;
       const turaStr = prompt("Tura (1 sau 2). Lasă gol dacă vrei ambele ture pentru acest nume:");
-      const turaNum = turaStr ? Number(turaStr) : null;
-      if(!confirm(`Șterg orele din luna curentă pentru "${nume}"${turaNum?` (tura ${turaNum})`:''}. Continui?`)) return;
+      const turaNum = (turaStr !== null && turaStr.trim() !== "") ? Number(turaStr) : null;
+      if(!confirm(`Șterg orele din luna curentă pentru "${nume}"${turaNum !== null ? ` (tura ${turaNum})` : ''}. Continui?`)) return;
 
       const col = collection(db, "pontaj_lunar");
       let q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("nume","==", nume));
-      if (turaNum) q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("nume","==", nume), where("tura","==", turaNum));
+      if (turaNum !== null) q = query(col, where("an","==", anCurent), where("luna","==", lunaNum), where("nume","==", nume), where("tura","==", turaNum));
 
       const snap = await getDocs(q);
       let batch = writeBatch(db), count = 0;
-      for (const d of snap.docs) { const data = d.data(); if (Number(data.zi) > 0) { batch.delete(d.ref); count++; if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); } } }
+      for (const d of snap.docs) {
+        const data = d.data();
+        if (Number(data.zi) > 0) {
+          batch.delete(d.ref); count++;
+          if (count % 450 === 0) { await batch.commit(); batch = writeBatch(db); }
+        }
+      }
       if (count > 0) await batch.commit();
-
-      alert(`Șters ${count} înregistrări pentru ${nume} în luna curentă.`);
+      alert(`Șters ${count} înregistrări pentru ${nume} în luna curentă${turaNum!==null?` (tura ${turaNum})`:''}.`);
       await incarcaAdmin();
       await incarcaAngajatiSiConstruieste();
       await prefillPontaj(1); await prefillPontaj(2);
     };
-
   </script>
 
   <!-- ExcelJS + FileSaver pentru XLSX -->
@@ -1015,7 +798,7 @@ Cod: ${"${"}cod{"}"}`); }
   <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
 
-  <!-- Sugestii pentru coduri speciale CO / N / FP -->
+  <!-- Datalist pentru coduri speciale (CO / N / FP) -->
   <datalist id="coduriPontaj">
     <option value="CO" label="Concediu"></option>
     <option value="N"  label="Nemotivat"></option>
