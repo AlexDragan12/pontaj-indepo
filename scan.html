@@ -9,7 +9,8 @@
     :root{--bg:#0d1b2a;--card:#1b263b;--text:#eef2f6;--border:#2e3b55;--ok:#1abc9c;--danger:#e74c3c;}
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
-    header{display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(90deg,#003566,#0b3d5c);border-bottom:1px solid #09314d}
+    header{display:flex;align-items:center;gap:12px;justify-content:center;padding:14px;background:linear-gradient(90deg,#003566,#0b3d5c);border-bottom:1px solid #09314d}
+    header img{height:40px}
     header h1{margin:0;font-size:20px;letter-spacing:0.5px}
     .wrap{padding:16px;max-width:500px;margin:0 auto}
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
@@ -21,7 +22,10 @@
   </style>
 </head>
 <body>
-<header><h1>Scanare Pontaj</h1></header>
+<header>
+  <img src="sigla.png" alt="Sigla" />
+  <h1>Scanare Pontaj</h1>
+</header>
 <div class="wrap">
   <div class="card">
     <input id="scanInput" type="text" placeholder="Scanează aici" autofocus />
