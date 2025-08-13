@@ -6,7 +6,7 @@
   <title>Pontaj – Lunar & Admin (fără QR)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    :root{
+   :root{
   /* fundal general deschis */
   --bg:#f4f8fc;        /* gri-albăstrui foarte deschis */
   --card:#ffffff;      /* carduri complet albe */
@@ -31,7 +31,12 @@
 
 
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
+    body {
+  margin:0;
+  font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;
+  background: linear-gradient(180deg, #f4f8fc 0%, #e8f4f8 100%);
+  color:var(--text);
+}
     header{
   display:flex; 
   align-items:center; 
@@ -919,4 +924,3 @@ th.weekend{ background:linear-gradient(180deg, #0e57a8, #0b3b58) }
   </datalist>
 </body>
 </html>
-
