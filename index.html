@@ -7,36 +7,38 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
    :root{
-  /* fundal general deschis */
-  --bg:#f4f8fc;        /* gri-albăstrui foarte deschis */
-  --card:#ffffff;      /* carduri complet albe */
-  --muted:#607d8b;     /* gri-albastru pentru text secundar */
-  --text:#1a1a1a;      /* text principal închis */
+  /* fundal general albastru mai deschis */
+  --bg:#152238; 
+  --card:#1f2d46; 
+  --muted:#7f8ca3; 
+  --text:#f5f8ff;
 
-  /* accente vii */
-  --accent:#00bcd4;    /* cyan viu */
-  --accent2:#ff4081;   /* roz viu */
-
+  /* accente */
+  --accent:#00c6ff;    /* cyan viu */
+  --accent2:#ff4f81;   /* roz */
+  
   /* tabele și borduri */
-  --thead:#cfd8dc;     
-  --thead2:#00a1c6;    /* albastru mediu pentru headere */
-  --border:#b0bec5;
-  --wkbg:#e1f5fe;      /* weekend fundal albastru foarte deschis */
+  --thead:#1a3b5f; 
+  --thead2:#1976d2;    /* albastru intens */
+  --border:#2f4768;
+  --wkbg:#1b3550;      /* weekend mai vizibil */
 
   /* status */
   --ok:#1abc9c; 
-  --warn:#ffb300; 
-  --danger:#e53935;
+  --warn:#f7b32b; 
+  --danger:#e74c3c;
 }
+
 
 
     *{box-sizing:border-box}
-    body {
+   body {
   margin:0;
   font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;
-  background: linear-gradient(180deg, #f4f8fc 0%, #e8f4f8 100%);
+  background: var(--bg);
   color:var(--text);
 }
+
     header{
   display:flex; 
   align-items:center; 
@@ -125,15 +127,49 @@ th.weekend{ background:linear-gradient(180deg, #0e57a8, #0b3b58) }
     .tab-content.active{display:block}
     .scroll-x{overflow-x:auto}
 
-    table{width:100%;border-collapse:collapse;background:#0f2133;border-radius:12px;overflow:hidden}
-    th,td{border:1px solid #12314a;text-align:center}
-    th{position:sticky;top:0;background:var(--thead2);color:#fff;font-weight:600}
-    td{background:#0d2032}
-    td:first-child, th:first-child{position:sticky;left:0;background:#0f3554;z-index:1}
-    td.name{background:#123;font-weight:600}
-    th.weekend{background:linear-gradient(180deg,#0f4b6d, #0b3b58)}
-    td.weekend{background:var(--wkbg)}
-    th,td{padding:6px;font-size:11px}
+   table{
+  width:100%;
+  border-collapse:collapse;
+  background:var(--card);
+  border-radius:12px;
+  overflow:hidden;
+}
+
+th,td{
+  border:1px solid var(--border);
+  text-align:center;
+}
+
+th{
+  position:sticky;
+  top:0;
+  background:linear-gradient(180deg, var(--thead2), #145ca8);
+  color:#fff;
+  font-weight:600;
+}
+
+td{
+  background:#23344d;
+}
+
+td.name{
+  background:#1c2e46;
+  font-weight:600;
+}
+
+th.weekend{
+  background:linear-gradient(180deg, #1e5f99, #15466e);
+}
+
+td.weekend{
+  background:var(--wkbg);
+}
+
+th,td{
+  padding:6px;
+  font-size:11px;
+}
+
 
     input[type="text"]{
       width:36px;min-width:36px;text-align:center;font-size:10px;
