@@ -787,88 +787,100 @@ tbody tr:active{
       saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
     };
 
-    // ============ EXPORT PDF ============
-    window.exportPDFAdmin = async function(){
-      const {head, rows} = getAdminTableData();
-      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
+    // ============ EXPORT PDF (patched: coloana "Total" garantat vizibilă) ============
+window.exportPDFAdmin = async function(){
+  const {head, rows} = getAdminTableData();
+  if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
 
-      const now = new Date();
-      const lunaSel = Number(ddlLuna.value || lunaNum);
-      const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
-      const gen = `Generat la: ${now.toLocaleString("ro-RO")}`;
+  const now = new Date();
+  const lunaSel = Number(ddlLuna.value || lunaNum);
+  const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
+  const gen   = `Generat la: ${now.toLocaleString("ro-RO")}`;
 
-      const rgbCO = [232,247,232], txtCO = [15,61,15];
-      const rgbN  = [255,234,234], txtN  = [101,16,16];
-      const rgbFP = [255,248,230], txtFP = [90,65,0];
-      const rgbWeekendHead = [230,238,247];
+  // Paletă pentru marcaje speciale
+  const rgbCO = [232,247,232], txtCO = [15,61,15];
+  const rgbN  = [255,234,234], txtN  = [101,16,16];
+  const rgbFP = [255,248,230], txtFP = [90,65,0];
+  const rgbWeekendHead = [230,238,247];
 
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
-      const pageWidth = doc.internal.pageSize.getWidth();
-      const addFooter = () => {
-        const pageCount = doc.internal.getNumberOfPages();
-        for (let i = 1; i <= pageCount; i++) {
-          doc.setPage(i);
-          doc.setFontSize(9);
-          doc.setTextColor(120);
-          doc.text(`Pagina ${i} / ${pageCount}`, doc.internal.pageSize.getWidth() - 80, doc.internal.pageSize.getHeight() - 12);
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
+  const pageWidth  = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+
+  // Header (siglă + titlu)
+  try {
+    const b64 = await fetchToBase64("sigla.png");
+    doc.addImage(b64, "PNG", 24, 20, 120, 34);
+  } catch (e) { /* logo opțional */ }
+  doc.setFont("helvetica","bold"); doc.setFontSize(14);
+  doc.text(title, 160, 36, {maxWidth: pageWidth - 180});
+  doc.setFont("helvetica","normal"); doc.setFontSize(10);
+  doc.text(gen, 160, 54);
+
+  // --- LĂȚIMI FIXE SIGURE PENTRU A4 LANDSCAPE (include "Total") ---
+  const colStyles = {};
+  colStyles[0] = { halign:'left', cellWidth: 120 }; // Nume
+  colStyles[1] = { cellWidth: 30 };                 // Tura
+  for (let i = 2; i <= head.length - 2; i++) {      // Zile (1..31)
+    colStyles[i] = { cellWidth: 18 };
+  }
+  colStyles[head.length - 1] = { cellWidth: 60 };   // Total
+
+  // NOTĂ: nu folosi "tableWidth:'wrap'" sau scale hacks; la nevoie, micșorează puțin lățimile de mai sus.
+
+  doc.autoTable({
+    startY: 74,
+    head: [head],
+    body: rows,
+    tableWidth: 'auto',
+    styles:     { fontSize:8, cellPadding:3, halign:'center', valign:'middle', overflow:'linebreak' },
+    headStyles: { fillColor:[204,229,255], textColor:0, halign:'center' },
+    columnStyles: colStyles,
+    theme: 'grid',
+    margin: { left:24, right:24, top:74, bottom:24 },
+
+    // Colorează weekend-urile în header și CO/N/FP în corp
+    didParseCell: (data) => {
+      if (data.section === 'head') {
+        const i = data.column.index;
+        if (i >= 2 && i <= head.length - 2) {
+          const zi = i - 1;
+          if (isWeekend(anCurent, lunaSel - 1, zi)) {
+            data.cell.styles.fillColor = rgbWeekendHead;
+          }
         }
-      };
-        
-
-      try{ const b64 = await fetchToBase64("sigla.png"); doc.addImage(b64, "PNG", 24, 20, 120, 34); }catch(e){}
-      doc.setFont("helvetica","bold"); doc.setFontSize(14);
-      doc.text(title, 160, 36, {maxWidth: pageWidth-180});
-      doc.setFont("helvetica","normal"); doc.setFontSize(10);
-      doc.text(gen, 160, 54);
-
-      const headStyles = head.map((_, i) => { if (i >= 2) { const zi = i - 1; if (isWeekend(anCurent, lunaSel - 1, zi)) return { fillColor: rgbWeekendHead }; } return null; });
-
-      doc.autoTable({
-        startY: 74,
-        head: [head],
-        body: rows,
-        styles: { fontSize:8, cellPadding:3, halign:'center', valign:'middle' },
-        headStyles: { fillColor:[204,229,255], textColor:0, halign:'center' },
-        columnStyles: { 0:{halign:'left', cellWidth:120}, 1:{cellWidth:30} },
-        theme: 'grid',
-        margin: {left:24, right:24, top:74, bottom:24 },
-        didParseCell: (data) => { 
-          if (data.section === 'head') {
-            const s = headStyles[data.column.index];
-            if (s && s.fillColor) data.cell.styles.fillColor = s.fillColor;
-          }
-          if (data.section === 'body') {
-            const colIdx = data.column.index;
-            const isZi = (colIdx >= 2 && colIdx <= head.length-2);
-            if (!isZi) return;
-            const val = String(data.cell.raw ?? "").toUpperCase();
-            if (val === "CO") { data.cell.styles.fillColor = rgbCO; data.cell.styles.textColor = txtCO; data.cell.styles.fontStyle = 'bold'; }
-            if (val === "N")  { data.cell.styles.fillColor = rgbN;  data.cell.styles.textColor = txtN;  data.cell.styles.fontStyle = 'bold'; }
-            if (val === "FP") { data.cell.styles.fillColor = rgbFP; data.cell.styles.textColor = txtFP; data.cell.styles.fontStyle = 'bold'; }
-          }
-        },
-        willDrawCell: (data) => {
-          if (data.section === 'body' && data.row.index % 2 === 1) {
-            data.cell.styles.fillColor = data.cell.styles.fillColor || [35, 52, 77];
-          }
-        },
-        tableWidth: 'wrap',
-        styles: {overflow: 'linebreak' },
-      });
-      const finalW = doc.lastAutoTable?.table?.witdh || 0;
-      const usableW = doc.internal.pageSize.getWidth() - 48;
-      if (finalW>usableW) {
-        const scale = usableW / finalW;
-        doc.internal.scaleFactor = doc.internal.scaleFactor * scale;      
       }
+      if (data.section === 'body') {
+        const colIdx = data.column.index;
+        const isZi = (colIdx >= 2 && colIdx <= head.length - 2);
+        if (!isZi) return;
+        const val = String(data.cell.raw ?? "").toUpperCase();
+        if (val === "CO") { data.cell.styles.fillColor = rgbCO; data.cell.styles.textColor = txtCO; data.cell.styles.fontStyle = 'bold'; }
+        if (val === "N")  { data.cell.styles.fillColor = rgbN;  data.cell.styles.textColor = txtN;  data.cell.styles.fontStyle = 'bold'; }
+        if (val === "FP") { data.cell.styles.fillColor = rgbFP; data.cell.styles.textColor = txtFP; data.cell.styles.fontStyle = 'bold'; }
+      }
+    },
 
-      let y = doc.lastAutoTable.finalY || 74;
-      doc.setFontSize(9); doc.setTextColor(107,125,147);
-      doc.text("Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată", 24, y + 18);
+    // Zebra striping discret pentru lizibilitate (nu afectează "Total")
+    willDrawCell: (data) => {
+      if (data.section === 'body' && data.row.index % 2 === 1) {
+        data.cell.styles.fillColor = data.cell.styles.fillColor || [31,45,70];
+      }
+    }
+  });
 
-      doc.save(`raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.pdf`);
-    };
+  // Footer: număr de pagină
+  const pageCount = doc.internal.getNumberOfPages();
+  for (let i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(9); doc.setTextColor(120);
+    doc.text(`Pagina ${i} / ${pageCount}`, pageWidth - 80, pageHeight - 12);
+  }
+
+  doc.save(`raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.pdf`);
+};
+
 
     // util: încarcă imagine și întoarce DataURL
     async function fetchToBase64(url){
