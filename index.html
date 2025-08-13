@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="ro">
 <head>
+  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"></script>
   <meta charset="UTF-8" />
   <title>Pontaj – Lunar & Admin (fără QR)</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
@@ -457,53 +458,95 @@
     }
 
     async function incarcaAdmin(){
-      buildHeadAdmin();
-      setLoading(true);
-      const snap = await getDocs(collection(db,"pontaj_lunar"));
-      const map = {}; // key = nume_tura_luna
+  buildHeadAdmin();
+  setLoading(true);
 
-      snap.forEach(dref=>{
-        const d = dref.data();
-        if (Number(d.luna) === 0 || Number(d.zi) === 0) return; // ignora init
-        if(ddlLuna.value && Number(ddlLuna.value)!==Number(d.luna)) return;
-        if(ddlTura.value && Number(ddlTura.value)!==Number(d.tura)) return;
-        if(txtNume.value && !String(d.nume).toLowerCase().includes(txtNume.value.toLowerCase())) return;
+  try {
+    // === Construim query-ul cât mai selectiv posibil ===
+    const col = collection(db, "pontaj_lunar");
+    const wh = [ where("an","==", anCurent) ];
 
-        const key = `${d.nume}_${d.tura}_${d.luna}`;
-        if(!map[key]) map[key] = {nume:d.nume, tura:d.tura, luna:d.luna, totalMin:0, zile:{}, zileLucrate:0};
-        map[key].zile[d.zi] = d.ora || "";
+    const lunaSel = ddlLuna.value ? Number(ddlLuna.value) : null;
+    if (lunaSel !== null) wh.push( where("luna","==", lunaSel) );
 
-        const v = String(d.ora||"").trim().toUpperCase();
-        if(v!=="CO" && v!=="N" && v!=="FP"){
-          const mm = v.match(/^(\d{1,2}):(\d{2})$/);
-          if (mm){
-            const h = Number(mm[1]), m = Number(mm[2]);
-            if(!isNaN(h)&&!isNaN(m)) { map[key].totalMin += h*60+m; map[key].zileLucrate++; }
-          }
+    const turaSel = ddlTura.value ? Number(ddlTura.value) : null;
+    if (turaSel !== null) wh.push( where("tura","==", turaSel) );
+
+    // Notă: căutarea "live" după nume parțial nu e susținută nativ în Firestore fără câmpuri auxiliare + orderBy/startAt.
+    // De aceea o facem client-side după fetch.
+    const q = query(col, ...wh);
+
+    const snap = await getDocs(q);
+
+    // === Agregăm rezultatele ===
+    const map = {}; // key = nume_tura_luna
+    const needle = (txtNume.value || "").trim().toLowerCase();
+
+    snap.forEach(dref => {
+      const d = dref.data();
+      // Ignorăm documentele "init" (zi/lună 0)
+      if (Number(d.luna) === 0 || Number(d.zi) === 0) return;
+
+      // Filtru local după nume (conține)
+      if (needle && !String(d.nume).toLowerCase().includes(needle)) return;
+
+      const key = `${d.nume}_${d.tura}_${d.luna}`;
+      if (!map[key]) {
+        map[key] = { nume: d.nume, tura: d.tura, luna: d.luna, totalMin: 0, zile: {}, zileLucrate: 0 };
+      }
+      map[key].zile[d.zi] = d.ora || "";
+
+      const v = String(d.ora || "").trim().toUpperCase();
+      if (v !== "CO" && v !== "N" && v !== "FP") {
+        const mm = v.match(/^(\d{1,2}):(\d{2})$/);
+        if (mm) {
+          const h = Number(mm[1]), m = Number(mm[2]);
+          if (!isNaN(h) && !isNaN(m)) { map[key].totalMin += h*60 + m; map[key].zileLucrate++; }
         }
-      });
+      }
+    });
 
-      adminBody.innerHTML="";
-      let count=0;
-      Object.values(map).forEach(p=>{
-        const normaTot = p.zileLucrate * 8 * 60;
-        const diff = p.totalMin - normaTot;
-        const totalTxt = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
-        const diffTxt = diff===0?"la normă":`${diff>0?'+':'-'}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
-        const tr=document.createElement("tr");
-        tr.innerHTML = `
-          <td class="name">${p.nume}</td>
-          <td>${p.tura}</td>
-          ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
-          <td class="total" title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m\nDiferență: ${diffTxt}">${totalTxt} <span class="delta-badge ${diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero'}">${diff===0?'la normă':diffTxt}</span></td>
-        `;
-        adminBody.appendChild(tr);
-        count++;
-      });
-      if(!count){ adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`; }
-      statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
-      setLoading(false);
+    // === Render tabel ===
+    adminBody.innerHTML = "";
+    let count = 0;
+    Object.values(map).forEach(p => {
+      const normaTot = p.zileLucrate * 8 * 60;
+      const diff = p.totalMin - normaTot;
+      const totalTxt = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
+      const diffTxt  = diff===0 ? "la normă" :
+        `${diff>0?'+':'-'}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
+
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td class="name">${p.nume}</td>
+        <td>${p.tura}</td>
+        ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
+        <td class="total"
+            title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m\nDiferență: ${diffTxt}">
+          ${totalTxt}
+          <span class="delta-badge ${diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero'}">
+            ${diff===0?'la normă':diffTxt}
+          </span>
+        </td>
+      `;
+      adminBody.appendChild(tr);
+      count++;
+    });
+
+    if (!count) {
+      adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
     }
+    statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
+
+  } catch (err) {
+    console.error("incarcaAdmin (filtrat):", err);
+    adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Eroare la încărcare. Vezi consolă.</td></tr>`;
+    statusCount.textContent = "—";
+  } finally {
+    setLoading(false);
+  }
+}
+
 
     ddlLuna.addEventListener("change", incarcaAdmin);
     ddlTura.addEventListener("change", incarcaAdmin);
