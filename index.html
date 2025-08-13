@@ -28,22 +28,64 @@
   --warn:#ffbf2f; 
   --danger:#ff4d4f;
 }
+
     *{box-sizing:border-box}
     body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
     header{
-      display:flex;align-items:center;gap:12px;justify-content:center;
-      padding:14px 18px;background:linear-gradient(90deg,#003566 0%, #0b3d5c 100%);
-      border-bottom:1px solid #09314d
-    }
+  display:flex; 
+  align-items:center; 
+  justify-content:space-between;           /* mutăm logo la dreapta */
+  padding:14px 18px;
+  background:linear-gradient(90deg, #062a4d 0%, #0d3c75 60%, #1147a5 100%);
+  border-bottom:1px solid #0b2e58;
+}
     header img{height:36px}
-    header h1{margin:0;font-size:18px;letter-spacing:.3px}
-
-    .tabs{display:flex;gap:8px;justify-content:center;padding:10px 12px;background:rgba(255,255,255,.03)}
-    .tab{
-      background:#14324a;border:1px solid var(--border);color:var(--text);cursor:pointer;
-      padding:8px 12px;border-radius:10px;font-weight:600;font-size:13px
+    header h1{
+  margin:0; 
+  font-size:18px; 
+  letter-spacing:.3px;
+  color:var(--text);  
     }
-    .tab.active{background:var(--accent2);border-color:transparent}
+
+header .logo{
+  height:36px;
+  border-radius:10px;                      /* colțuri rotunjite pentru logo */
+  padding:4px;                             /* mic “badge” în jurul imaginii */
+  background:rgba(255,255,255,.06);        /* fundal discret */
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 2px 10px rgba(0,0,0,.35);   /* umbră fină */
+}
+    .tabs{ background:rgba(255,255,255,.04) }
+
+.tab{
+  background:#14324a;
+  border:1px solid var(--border);
+  color:var(--text);
+  cursor:pointer;
+  padding:6px 10px;         /* puțin mai compact */
+  border-radius:10px;
+  font-weight:600;
+  font-size:12px;
+  transition:all .15s ease-in-out;
+}
+.tab:hover{ 
+  transform:translateY(-1px); 
+  box-shadow:0 2px 6px rgba(0,0,0,.25);
+}
+.tab.active{
+  background:linear-gradient(135deg, var(--accent) 0%, var(--accent2) 100%);
+  border-color:transparent;
+  color:#05121b;
+}
+
+/* headere tabel mai vii */
+th{ 
+  background:linear-gradient(180deg, var(--thead2), #0a3dbd);
+  color:#fff; 
+  font-weight:700;
+}
+th.weekend{ background:linear-gradient(180deg, #0e57a8, #0b3b58) }
+
 
     .wrap{padding:16px}
     .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px}
@@ -58,11 +100,19 @@
       background:#102338;color:#fff
     }
     .btn{
-      padding:5px 9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-weight:700;font-size:12px
+      padding: 5px 9px;border-radius:8px;border:1px solid var(--border);cursor:pointer;font-weight:600;font-size:12px;transition: all .15s ease-in-out;
     }
-    .btn.primary{background:var(--accent);color:#04202e;border:none}
-    .btn.ghost{background:#14324a}
+    .btn:hover{
+      opacity: .95 ;
+      transform: translateY(-1px);
+      box-shadow: 0 2px 6px rgba(0,0,0,.25);
+    }
+    .btn.primary{background:var(--accent);color:#04121e;border:none}
+    .btn.primary:hover{ filter: brightness(.95);}
+    .btn.ghost{background:#163555}
+    .btn.ghost:hover{filter:brightness(1.1) ;}
     .btn.danger{background:var(--danger);color:#fff;border:none}
+    .btn.danger:hover{filter:brightness(.95);}
     .pill{font-size:12px;padding:6px 10px;border-radius:999px;background:#102338;border:1px solid #2e3b55;opacity:.9}
 
     .tab-content{display:none}
@@ -81,8 +131,9 @@
 
     input[type="text"]{
       width:36px;min-width:36px;text-align:center;font-size:10px;
-      background:#e0f7ff;color:#05121b;border:1px solid #9fd3e6;border-radius:6px;padding:2px 3px
+      background:#eaffff;color:#071a22;border:1px solid #9fe9ff;border-radius:6px;padding:2px 3px
     }
+    td.weekend {background: var(--wkbg);}
 
     .total{font-weight:700;background:#112b40}
     .delta-badge{display:inline-block;margin-left:6px;padding:2px 6px;border-radius:999px;font-size:10px;font-weight:700}
@@ -103,9 +154,10 @@
 </head>
 <body>
   <header>
-    <img src="sigla.png" alt="Sigla" />
-    <h1>Pontaj – Lunar & Admin</h1>
-  </header>
+  <h1>Pontaj - Lunar</h1>
+  <img class="logo" src="sigla.png" alt="Sigla" />
+</header>
+
 
   <div class="tabs">
     <button class="tab active" data-tab="lunar">Pontaj Lunar</button>
@@ -866,5 +918,3 @@
   </datalist>
 </body>
 </html>
-
-
