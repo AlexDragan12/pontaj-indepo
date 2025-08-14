@@ -860,14 +860,16 @@ window.codBareAngajat = async function () {
       saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
     };
 
-    // ============ EXPORT PDF (patched: coloana "Total" garantat vizibilă) ============
+// ============ EXPORT PDF (Total separat de +/- ore) ============
 window.exportPDFAdmin = async function(){
   const {head, rows} = getAdminTableData();
   if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
 
   const now = new Date();
-  const lunaSel = Number(ddlLuna.value || lunaNum);
-  const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
+  const lunaSel = Number(document.getElementById("filtruLuna").value || (new Date().getMonth()+1));
+  const anCurent = new Date().getFullYear();
+  const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
+  const title = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (document.getElementById("filtruTura").value?` (Tura ${document.getElementById("filtruTura").value})`:"");
   const gen   = `Generat la: ${now.toLocaleString("ro-RO")}`;
 
   // Paletă pentru marcaje speciale
@@ -875,6 +877,19 @@ window.exportPDFAdmin = async function(){
   const rgbN  = [255,234,234], txtN  = [101,16,16];
   const rgbFP = [255,248,230], txtFP = [90,65,0];
   const rgbWeekendHead = [230,238,247];
+
+  // 1) Construim head+rows noi, cu o coloană suplimentară „+/- ore” după „Total”
+  const headPlus = [...head, "+/- ore"];
+
+  // r[r.length-1] este „Total” + textul etichetei (ex: "8h 0m la normă" sau "8h 0m +2h 30m")
+  const rowsPlus = rows.map(r => {
+    const last = r[r.length - 1] || "";
+    const m = String(last).match(/^(\d+h \s*\d+m)\s*(.*)?$/i);
+    const totalTxt = m ? m[1].replace(/\s+/g, ' ') : String(last).trim();
+    let diffTxt = (m && m[2]) ? m[2].trim() : "";
+    if (!diffTxt || /la\s*norm[ăa]/i.test(diffTxt)) diffTxt = "±0h 0m";
+    return [...r.slice(0, -1), totalTxt, diffTxt];
+  });
 
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF({orientation:"landscape", unit:"pt", format:"a4"});
@@ -891,21 +906,23 @@ window.exportPDFAdmin = async function(){
   doc.setFont("helvetica","normal"); doc.setFontSize(10);
   doc.text(gen, 160, 54);
 
-  // --- LĂȚIMI FIXE SIGURE PENTRU A4 LANDSCAPE (include "Total") ---
+  // 2) Lățimi de coloană (Nume, Tura, Zile, Total, +/-)
   const colStyles = {};
   colStyles[0] = { halign:'left', cellWidth: 120 }; // Nume
   colStyles[1] = { cellWidth: 30 };                 // Tura
-  for (let i = 2; i <= head.length - 2; i++) {      // Zile (1..31)
+  // Zile (1..31) sunt între index 2 și (headPlus.length - 3)
+  for (let i = 2; i <= headPlus.length - 3; i++) {
     colStyles[i] = { cellWidth: 18 };
   }
-  colStyles[head.length - 1] = { cellWidth: 60 };   // Total
-
-  // NOTĂ: nu folosi "tableWidth:'wrap'" sau scale hacks; la nevoie, micșorează puțin lățimile de mai sus.
+  // „Total” devine penultima coloană
+  colStyles[headPlus.length - 2] = { cellWidth: 60 };
+  // „+/- ore” ultima coloană
+  colStyles[headPlus.length - 1] = { cellWidth: 60 };
 
   doc.autoTable({
     startY: 74,
-    head: [head],
-    body: rows,
+    head: [headPlus],
+    body: rowsPlus,
     tableWidth: 'auto',
     styles:     { fontSize:8, cellPadding:3, halign:'center', valign:'middle', overflow:'linebreak' },
     headStyles: { fillColor:[204,229,255], textColor:0, halign:'center' },
@@ -913,29 +930,32 @@ window.exportPDFAdmin = async function(){
     theme: 'grid',
     margin: { left:24, right:24, top:74, bottom:24 },
 
-    // Colorează weekend-urile în header și CO/N/FP în corp
     didParseCell: (data) => {
+      // Marchează weekend-urile în header (doar pe coloanele de zile)
       if (data.section === 'head') {
         const i = data.column.index;
-        if (i >= 2 && i <= head.length - 2) {
-          const zi = i - 1;
-          if (isWeekend(anCurent, lunaSel - 1, zi)) {
-            data.cell.styles.fillColor = rgbWeekendHead;
-          }
+        if (i >= 2 && i <= headPlus.length - 3) {
+          const zi = i - 1; // pentru header „1..31”
+          const m0 = lunaSel - 1, y = anCurent;
+          const w = new Date(y, m0, zi).getDay(); // 0=Sun,6=Sat
+          const isWeekend = (w === 0 || w === 6);
+          if (isWeekend) data.cell.styles.fillColor = rgbWeekendHead;
         }
       }
+
+      // Colorează CO / N / FP în corp (doar în coloanele de zile)
       if (data.section === 'body') {
         const colIdx = data.column.index;
-        const isZi = (colIdx >= 2 && colIdx <= head.length - 2);
+        const isZi = (colIdx >= 2 && colIdx <= headPlus.length - 3);
         if (!isZi) return;
-        const val = String(data.cell.raw ?? "").toUpperCase();
+        const val = String(data.cell.raw ?? "").toUpperCase().trim();
         if (val === "CO") { data.cell.styles.fillColor = rgbCO; data.cell.styles.textColor = txtCO; data.cell.styles.fontStyle = 'bold'; }
         if (val === "N")  { data.cell.styles.fillColor = rgbN;  data.cell.styles.textColor = txtN;  data.cell.styles.fontStyle = 'bold'; }
         if (val === "FP") { data.cell.styles.fillColor = rgbFP; data.cell.styles.textColor = txtFP; data.cell.styles.fontStyle = 'bold'; }
       }
     },
 
-    // Zebra striping discret pentru lizibilitate (nu afectează "Total")
+    // Zebra striping discret (nu afectează „Total”/„+/-”)
     willDrawCell: (data) => {
       if (data.section === 'body' && data.row.index % 2 === 1) {
         data.cell.styles.fillColor = data.cell.styles.fillColor || [31,45,70];
@@ -943,7 +963,7 @@ window.exportPDFAdmin = async function(){
     }
   });
 
-  // Footer: număr de pagină
+  // Footer cu număr de pagini
   const pageCount = doc.internal.getNumberOfPages();
   for (let i = 1; i <= pageCount; i++) {
     doc.setPage(i);
@@ -953,6 +973,7 @@ window.exportPDFAdmin = async function(){
 
   doc.save(`raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.pdf`);
 };
+
 
 
     // util: încarcă imagine și întoarce DataURL
