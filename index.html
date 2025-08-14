@@ -661,20 +661,27 @@ window.codBareAngajat = async function () {
     const resetFiltre = document.getElementById("resetFiltre");
 
     function buildHeadAdmin(){
-      adminHead.innerHTML="";
-      const cells=["Nume","Tura", ...Array.from({length:31},(_,i)=>String(i+1)),"Total"];
-      for(const c of cells){ const th=document.createElement("th"); th.textContent=c; adminHead.appendChild(th); }
-      const lunaSel = Number(ddlLuna.value || lunaNum);
-      const m0 = lunaSel-1, y = anCurent;
-      adminHead.querySelectorAll("th").forEach((th,i)=>{ if(i>=2 && i<=32){ const zi = i-1; if (isWeekend(y,m0,zi)) th.classList.add("weekend"); } });
+  adminHead.innerHTML="";
+  const cells=["Nume","Tura", ...Array.from({length:31},(_,i)=>String(i+1)),"Total","+/- ore"];
+  for(const c of cells){
+    const th=document.createElement("th");
+    th.textContent=c;
+    adminHead.appendChild(th);
+  }
+  const lunaSel = Number(ddlLuna.value || lunaNum);
+  const m0 = lunaSel-1, y = anCurent;
+  adminHead.querySelectorAll("th").forEach((th,i)=>{
+    if(i>=2 && i<=32){ // coloanele 1..31
+      const zi = i-1;
+      if (isWeekend(y,m0,zi)) th.classList.add("weekend");
     }
-
+  });
+}
     async function incarcaAdmin(){
   buildHeadAdmin();
   setLoading(true);
 
   try {
-    // === Construim query-ul cât mai selectiv posibil ===
     const col = collection(db, "pontaj_lunar");
     const wh = [ where("an","==", anCurent) ];
 
@@ -684,22 +691,15 @@ window.codBareAngajat = async function () {
     const turaSel = ddlTura.value ? Number(ddlTura.value) : null;
     if (turaSel !== null) wh.push( where("tura","==", turaSel) );
 
-    // Notă: căutarea "live" după nume parțial nu e susținută nativ în Firestore fără câmpuri auxiliare + orderBy/startAt.
-    // De aceea o facem client-side după fetch.
     const q = query(col, ...wh);
-
     const snap = await getDocs(q);
 
-    // === Agregăm rezultatele ===
     const map = {}; // key = nume_tura_luna
     const needle = (txtNume.value || "").trim().toLowerCase();
 
     snap.forEach(dref => {
       const d = dref.data();
-      // Ignorăm documentele "init" (zi/lună 0)
       if (Number(d.luna) === 0 || Number(d.zi) === 0) return;
-
-      // Filtru local după nume (conține)
       if (needle && !String(d.nume).toLowerCase().includes(needle)) return;
 
       const key = `${d.nume}_${d.tura}_${d.luna}`;
@@ -718,15 +718,17 @@ window.codBareAngajat = async function () {
       }
     });
 
-    // === Render tabel ===
     adminBody.innerHTML = "";
     let count = 0;
+
     Object.values(map).forEach(p => {
       const normaTot = p.zileLucrate * 8 * 60;
       const diff = p.totalMin - normaTot;
+
       const totalTxt = `${Math.floor(p.totalMin/60)}h ${p.totalMin%60}m`;
-      const diffTxt  = diff===0 ? "la normă" :
+      const diffTxt  = diff===0 ? "±0h 0m" :
         `${diff>0?'+':'-'}${Math.floor(Math.abs(diff)/60)}h ${Math.abs(diff)%60}m`;
+      const diffClass = diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero';
 
       const tr = document.createElement("tr");
       tr.innerHTML = `
@@ -734,11 +736,12 @@ window.codBareAngajat = async function () {
         <td>${p.tura}</td>
         ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
         <td class="total"
-            title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m\nDiferență: ${diffTxt}">
+            title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m">
           ${totalTxt}
-          <span class="delta-badge ${diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero'}">
-            ${diff===0?'la normă':diffTxt}
-          </span>
+        </td>
+        <td class="total"
+            title="Diferență față de normă">
+          <span class="delta-badge ${diffClass}">${diffTxt}</span>
         </td>
       `;
       adminBody.appendChild(tr);
@@ -746,13 +749,14 @@ window.codBareAngajat = async function () {
     });
 
     if (!count) {
-      adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
+      // colspan dinamic, egal cu numărul de coloane din antet
+      adminBody.innerHTML = `<tr><td colspan="${adminHead.children.length}" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
     }
     statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
 
   } catch (err) {
     console.error("incarcaAdmin (filtrat):", err);
-    adminBody.innerHTML = `<tr><td colspan="34" style="padding:10px">Eroare la încărcare. Vezi consolă.</td></tr>`;
+    adminBody.innerHTML = `<tr><td colspan="${adminHead.children.length||34}" style="padding:10px">Eroare la încărcare. Vezi consolă.</td></tr>`;
     statusCount.textContent = "—";
   } finally {
     setLoading(false);
@@ -776,89 +780,108 @@ window.codBareAngajat = async function () {
 
     // ============ EXPORT XLSX ============
     window.exportXLSXAdmin = async function(){
-      const {head, rows} = getAdminTableData();
-      if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
+  const {head, rows} = getAdminTableData();
+  if (!rows.length || (rows.length===1 && rows[0].length===1)) { alert("Nu există date."); return; }
 
-      const now = new Date();
-      const lunaSel = Number(ddlLuna.value || lunaNum);
-      const titlu = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
-      const generatLa = `Generat la: ${now.toLocaleString("ro-RO")}`;
+  const now = new Date();
+  const lunaSel = Number(ddlLuna.value || lunaNum);
+  const titlu = `Raport pontaj – ${luniRO[lunaSel-1]} ${anCurent}` + (ddlTura.value?` (Tura ${ddlTura.value})`:"");
+  const generatLa = `Generat la: ${now.toLocaleString("ro-RO")}`;
 
-      const fillCO = "FFE8F7E8", textCO = "FF0F3D0F";
-      const fillN  = "FFFFEAEA", textN  = "FF651010";
-      const fillFP = "FFFFF8E6", textFP = "FF5A4100";
-      const fillWeekend = "FFE6EEF7";
+  // Dacă head nu conține deja „+/- ore” (caz vechi), îl derivăm din ultima coloană
+  let head2 = head.slice();
+  let rows2 = rows.map(r=>r.slice());
+  if (!head2.includes("+/- ore")) {
+    head2.push("+/- ore");
+    rows2 = rows.map(r=>{
+      const last = r[r.length-1] || "";
+      const m = String(last).match(/^(\d+h \s*\d+m)\s*(.*)?$/i);
+      const totalTxt = m ? m[1].replace(/\s+/g,' ') : String(last).trim();
+      let diffTxt = (m && m[2]) ? m[2].trim() : "";
+      if (!diffTxt || /la\s*norm[ăa]/i.test(diffTxt)) diffTxt = "±0h 0m";
+      return [...r.slice(0,-1), totalTxt, diffTxt];
+    });
+  }
 
-      const wb = new ExcelJS.Workbook();
-      const ws = wb.addWorksheet("Raport", {properties:{defaultRowHeight:16}});
-      ws.columns = head.map((h,i)=>{
-        if (i === 0) return { width:20 };
-        if (i === 1) return { width:8 };
-        if (i === head.lenght - 1) return { width:14 };
-        return { width:6 };
-      });
-      ws.getColumn(1).width = 22; ws.getColumn(2).width = 8;
+  const fillCO = "FFE8F7E8", textCO = "FF0F3D0F";
+  const fillN  = "FFFFEAEA", textN  = "FF651010";
+  const fillFP = "FFFFF8E6", textFP = "FF5A4100";
+  const fillWeekend = "FFE6EEF7";
 
-      const totalCol = head.length;
-      ws.getColumn(totalCol).alignment = {vertical:"middle", horizontal:"center", wrapText:true};
+  const wb = new ExcelJS.Workbook();
+  const ws = wb.addWorksheet("Raport", {properties:{defaultRowHeight:16}});
 
-      ws.addRow([titlu]); ws.getCell("A1").font = {bold:true, size:14};
-      ws.mergeCells(1,1,1,head.length);
-      ws.addRow([generatLa]); ws.mergeCells(2,1,2,head.length);
-      ws.addRow([]);
+  // Lățimi coloane
+  ws.columns = head2.map((_,i)=>{
+    if (i === 0) return { width:22 };            // Nume
+    if (i === 1) return { width:8 };             // Tura
+    if (i >= 2 && i <= 32) return { width:6.5 }; // Zile
+    if (i === head2.length-2) return { width:12 }; // Total
+    if (i === head2.length-1) return { width:12 }; // +/- ore
+    return { width:10 };
+  });
 
-      const headerRow = ws.addRow(head);
-      ws.views = [{state:"frozen", ySplit:4}];
-      ws.autoFilter = {
-        from : {row: 4, column: 1}, // A4
-        to   : {row: 4, column: head.length} // A4..lastCol 
-      };
+  // Titlu + timestamp
+  ws.addRow([titlu]); ws.getCell("A1").font = {bold:true, size:14};
+  ws.mergeCells(1,1,1,head2.length);
+  ws.addRow([generatLa]); ws.mergeCells(2,1,2,head2.length);
+  ws.addRow([]);
 
+  // Antet
+  const headerRow = ws.addRow(head2);
+  ws.views = [{state:"frozen", ySplit:4}];
+  ws.autoFilter = { from:{row:4, column:1}, to:{row:4, column:head2.length} };
 
-      headerRow.font = {bold:true};
-      headerRow.alignment = {vertical:"middle", horizontal:"center"};
-      headerRow.eachCell(c=>{ c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFCCE5FF"}}; c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}}; });
+  headerRow.font = {bold:true};
+  headerRow.alignment = {vertical:"middle", horizontal:"center"};
+  headerRow.eachCell(c=>{
+    c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:"FFCCE5FF"}};
+    c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+  });
 
-      const m0 = lunaSel-1, y = anCurent;
-      for(let zi=1; zi<=31; zi++){
-        const col = 2 + zi; // 1=Nume,2=Tura => zi=1 e col 3
-        if(col<=head.length && isWeekend(y,m0,zi)){
-          const cell = headerRow.getCell(col);
-          cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillWeekend}};
-        }
+  // Weekend în header zile
+  const m0 = (ddlLuna.value ? Number(ddlLuna.value)-1 : lunaIdx), y = anCurent;
+  for(let zi=1; zi<=31; zi++){
+    const col = 2 + zi; // index excel (1-based)
+    if(col<=head2.length && isWeekend(y,m0,zi)){
+      const cell = headerRow.getCell(col);
+      cell.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillWeekend}};
+    }
+  }
+
+  // Corp
+  const startColZile = 3; // 3..33
+  rows2.forEach(r=>{
+    const row = ws.addRow(r);
+    row.eachCell((c, colIndex)=>{
+      c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
+      c.alignment = {vertical:"middle", horizontal:"center"};
+      if (colIndex >= startColZile && colIndex <= 33) {
+        const val = String(c.value ?? "").toUpperCase();
+        if (val === "CO") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillCO}}; c.font={color:{argb:textCO}, bold:true}; }
+        if (val === "N")  { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillN}};  c.font={color:{argb:textN},  bold:true}; }
+        if (val === "FP") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillFP}}; c.font={color:{argb:textFP},bold:true}; }
       }
+    });
+  });
 
-      const startColZile = 3; // col 3..33
-      rows.forEach(r=>{
-        const row = ws.addRow(r);
-        row.eachCell((c, colIndex)=>{
-          c.border = {top:{style:"thin"},left:{style:"thin"},bottom:{style:"thin"},right:{style:"thin"}};
-          c.alignment = {vertical:"middle", horizontal:"center"};
-          if (colIndex >= startColZile && colIndex <= head.length-1) {
-            const val = String(c.value ?? "").toUpperCase();
-            if (val === "CO") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillCO}}; c.font={color:{argb:textCO}, bold:true}; }
-            if (val === "N")  { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillN}};  c.font={color:{argb:textN},  bold:true}; }
-            if (val === "FP") { c.fill = {type:"pattern", pattern:"solid", fgColor:{argb:fillFP}}; c.font={color:{argb:textFP},bold:true}; }
-          }
-        });
-      });
+  const lastRow = ws.lastRow.number + 1;
+  ws.addRow([]);
+  ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată"]);
+  ws.mergeCells(lastRow+1,1,lastRow+1,Math.min(6, head2.length));
+  ws.getCell(lastRow+1,1).font = {italic:true, size:10, color:{argb:"FF6B7D93"}};
 
-      const lastRow = ws.lastRow.number + 1;
-      ws.addRow([]);
-      ws.addRow(["Legendă: CO = Concediu, N = Nemotivat, FP = Fără plată"]);
-      ws.mergeCells(lastRow+1,1,lastRow+1,Math.min(6, head.length));
-      ws.getCell(lastRow+1,1).font = {italic:true, size:10, color:{argb:"FF6B7D93"}};
+  // Siglă (opțional)
+  try{
+    const b64 = await fetchToBase64("sigla.png");
+    const base64 = b64.startsWith("data:") ? b64.split(",")[1] : b64;
+    const imgId = wb.addImage({base64: base64, extension:"png"});
+    ws.addImage(imgId, { tl:{col:0, row:0}, ext:{width:140, height:40} });
+  }catch(e){ console.warn("Sigla XLSX:", e); }
 
-      try{
-        const b64 = await fetchToBase64("sigla.png");
-        const base64 = b64.startsWith("data:") ? b64.split(",")[1] : b64;
-        const imgId = wb.addImage({base64: base64, extension:"png"});
-        ws.addImage(imgId, { tl:{col:0, row:0}, ext:{width:140, height:40} });
-      }catch(e){ console.warn("Sigla XLSX:", e); }
-
-      const buf = await wb.xlsx.writeBuffer();
-      saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
-    };
+  const buf = await wb.xlsx.writeBuffer();
+  saveAs(new Blob([buf], {type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"}), `raport_pontaj_${anCurent}_${String(lunaSel).padStart(2,"0")}.xlsx`);
+};
 
 // ============ EXPORT PDF (Total separat de +/- ore) ============
 window.exportPDFAdmin = async function(){
