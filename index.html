@@ -376,7 +376,7 @@ window.codBareAngajat = async function () {
 <body>
   <div class="card">
     <h2>${a.nume || ""}</h2>
-    <div class="meta">Tura: ${(a.tura != null ? a.tura : "")} &nbsp;|&nbsp; Cod: <strong>${badge}</strong></div>
+    <div class="meta">Tura: ${(a.tura != null ? a.tura : "")} &nbsp;|&nbsp; InDepo</div>
     <svg id="barcode"></svg>
     <div class="actions"><button onclick="window.print()">Printează</button></div>
   </div>
@@ -391,7 +391,7 @@ window.codBareAngajat = async function () {
     // important: accesăm API-ul din contextul ferestrei noi (w)
     w.JsBarcode(w.document.querySelector("#barcode"), badge, {
       format: "CODE128",
-      displayValue: true,
+      displayValue: false,
       fontSize: 16,
       height: 80,
       margin: 10
