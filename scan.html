@@ -2,230 +2,304 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
+  <title>Scanare Pontaj – InDepo</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Scanare Pontaj</title>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#0d1b2a;--card:#1b263b;--text:#eef2f6;--border:#2e3b55;--ok:#1abc9c;--danger:#e74c3c;}
+    :root{
+      --bg:#0e1b2b; --card:#152238; --text:#f5f8ff; --muted:#8ea2c6;
+      --accent:#00c6ff; --accent2:#ff4f81; --ok:#19c37d; --warn:#f7b32b; --err:#e74c3c; --border:#2a3a55;
+    }
     *{box-sizing:border-box}
-    body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Arial,sans-serif}
-    header{display:flex;align-items:center;justify-content:center;padding:14px;background:linear-gradient(90deg,#003566,#0b3d5c);border-bottom:1px solid #09314d}
-    header h1{margin:0;font-size:20px;letter-spacing:0.5px}
-    .wrap{padding:16px;max-width:500px;margin:0 auto}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:14px;margin-bottom:12px;box-shadow:0 4px 10px rgba(0,0,0,0.2)}
-    input{width:100%;padding:14px;border-radius:8px;border:1px solid var(--border);font-size:18px;background:#102338;color:var(--text);text-align:center;letter-spacing:1px}
-    #log{margin-top:12px;font-size:13px;background:#0f2133;border:1px solid #0e2a42;padding:10px;border-radius:10px;max-height:220px;overflow:auto}
-    .toast{position:fixed;left:50%;top:18px;transform:translateX(-50%);background:#102338;border:1px solid var(--border);padding:10px 14px;border-radius:12px;box-shadow:0 10px 30px #0006;display:none;font-weight:600}
-    .toast.ok{border-color:#0f6;background:#0b2b22}
-    .toast.err{border-color:#f66;background:#2b0b0b}
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);}
+    header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid #0b2e58;
+      background:linear-gradient(90deg,#062a4d 0%,#0d3c75 60%,#1147a5 100%);}
+    header img{height:36px;border-radius:8px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12)}
+    header h1{margin:0;font-size:18px;letter-spacing:.3px}
+    main{max-width:780px;margin:24px auto;padding:0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .row{display:flex;flex-wrap:wrap;align-items:center;gap:10px}
+    .scanbox{display:flex;align-items:center;gap:10px;margin-top:8px}
+    input[type="text"]{
+      width:100%;max-width:560px;padding:14px 14px;border-radius:12px;border:1px solid var(--border);
+      background:#102338;color:#fff;font-size:16px;outline:none;
+    }
+    .hint{color:var(--muted);font-size:12px;margin-top:6px}
+    .btn{cursor:pointer;border:1px solid var(--border);background:#163555;color:#fff;border-radius:10px;padding:8px 12px;font-weight:600}
+    .btn:hover{filter:brightness(1.07)}
+    .status{margin-top:14px;padding:12px;border-radius:12px;border:1px solid var(--border);background:#112030}
+    .ok{color:#0f3;}.warn{color:#fc0}.err{color:#f66}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:12px}
+    .pill{display:inline-block;padding:6px 10px;border:1px solid var(--border);border-radius:999px;background:#0f2238;color:#cfe3ff;font-size:12px}
+    .log{font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12px;background:#0b1630;border-radius:10px;padding:8px;max-height:180px;overflow:auto}
+    .kiosk{margin-top:10px;display:flex;align-items:center;gap:10px}
+    .kiosk input[type="checkbox"]{transform:scale(1.1)}
   </style>
 </head>
 <body>
-<header><h1>Scanare Pontaj</h1></header>
-<div class="wrap">
-  <div class="card">
-    <input id="scanInput" type="text" placeholder="Scanează aici" autofocus />
-  </div>
-  <div class="card">
-    <div id="log"></div>
-  </div>
-</div>
-<div class="toast" id="toast"></div>
-<audio id="beepOk" src="https://cdn.jsdelivr.net/gh/saadeghi/files/success.mp3" preload="auto"></audio>
-<audio id="beepErr" src="https://cdn.jsdelivr.net/gh/saadeghi/files/error.mp3" preload="auto"></audio>
+<header>
+  <img src="sigla.png" alt="Siglă" />
+  <h1>Scanare pontaj</h1>
+</header>
 
+<main>
+  <div class="card">
+    <div class="row">
+      <div style="flex:1">
+        <label for="scanInput">Scanează codul (badge sau nume exact):</label>
+        <div class="scanbox">
+          <input id="scanInput" type="text" placeholder="Ex: 3NUU3RRJ sau Popescu Ion" autocomplete="off" autofocus />
+          <button class="btn" id="clearBtn" title="Golește">Golește</button>
+        </div>
+        <div class="kiosk">
+          <label class="pill"><input type="checkbox" id="autoSubmit" checked /> Trimite automat la Enter</label>
+          <span class="pill" id="timeNow">—:—</span>
+        </div>
+        <div class="hint">Scannerul trimite automat Enter. Dacă tastezi manual, apasă Enter sau butonul „Scanează”.</div>
+        <div style="margin-top:10px">
+          <button class="btn" id="scanBtn">Scanează</button>
+          <a class="btn" href="index.html">⟵ Înapoi la Pontaj</a>
+        </div>
+      </div>
+    </div>
+
+    <div class="status" id="statusBox">
+      <div><strong>Status:</strong> <span id="statusText">Aștept scanare…</span></div>
+      <div class="grid">
+        <div><strong>Ultima acțiune:</strong> <span id="lastAction">—</span></div>
+        <div><strong>Angajat:</strong> <span id="lastEmployee">—</span></div>
+      </div>
+      <div class="grid">
+        <div><strong>Ora start:</strong> <span id="lastStart">—</span></div>
+        <div><strong>Ora stop / adăugat:</strong> <span id="lastStop">—</span></div>
+      </div>
+    </div>
+
+    <div style="margin-top:10px">
+      <div class="pill">Jurnal (local)</div>
+      <div class="log" id="logBox"></div>
+    </div>
+  </div>
+</main>
+
+<!-- sunete mici opționale -->
+<audio id="beepOk" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaAAA//8AAP///wAA" type="audio/wav"></audio>
+<audio id="beepErr" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaAAA//8AAP///wAA" type="audio/wav"></audio>
+
+<!-- Firebase -->
 <script type="module">
   import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  import { getFirestore, collection, getDocs, doc, setDoc, addDoc, query, where } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+  import {
+    getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, runTransaction
+  } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-  // ---------- Firebase ----------
+  // ==== CONFIG FIREBASE (același ca în index.html) ====
   const firebaseConfig = {
-    apiKey:"AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
-    authDomain:"pontaj2025.firebaseapp.com",
-    projectId:"pontaj2025",
-    storageBucket:"pontaj2025.firebasestorage.app",
-    messagingSenderId:"732863008010",
-    appId:"1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
+    apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
+    authDomain: "pontaj2025.firebaseapp.com",
+    projectId: "pontaj2025",
+    storageBucket: "pontaj2025.appspot.com",
+    messagingSenderId: "732863008010",
+    appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
   };
   const app = initializeApp(firebaseConfig);
   const db  = getFirestore(app);
 
-  // ---------- Utils UI ----------
-  const logBox  = document.getElementById('log');
-  const toastEl = document.getElementById('toast');
-  const beepOk  = document.getElementById('beepOk');
-  const beepErr = document.getElementById('beepErr');
+  // ==== Helperi ====
+  const slug = s => String(s||"").toLowerCase().trim()
+    .replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
 
-  function toast(msg, ok=true){
-    toastEl.textContent = msg;
-    toastEl.className = 'toast ' + (ok ? 'ok' : 'err');
-    toastEl.style.display = 'block';
-    setTimeout(()=> toastEl.style.display='none', 1800);
+  const toHHMM = (mins) => {
+    const H = Math.floor(mins/60), M = mins % 60;
+    return `${String(H).padStart(2,'0')}:${String(M).padStart(2,'0')}`;
+  };
+
+  const fmtTime = d => d.toLocaleTimeString("ro-RO", {hour:'2-digit', minute:'2-digit', second:'2-digit'});
+
+  function addLog(s){
+    const box = document.getElementById("logBox");
+    const ts  = new Date().toLocaleString("ro-RO");
+    const line = `[${ts}] ${s}`;
+    box.textContent = line + "\n" + box.textContent;
+    // și în localStorage (ultimele 50)
+    const arr = JSON.parse(localStorage.getItem("scan_log")||"[]");
+    arr.unshift(line); while(arr.length>50) arr.pop();
+    localStorage.setItem("scan_log", JSON.stringify(arr));
   }
-  function addLog(line){
-    const p = document.createElement('div');
-    p.textContent = line;
-    logBox.prepend(p);
+  (function hydrateLog(){
+    const arr = JSON.parse(localStorage.getItem("scan_log")||"[]");
+    document.getElementById("logBox").textContent = arr.join("\n");
+  })();
+
+  function tickClock(){
+    document.getElementById("timeNow").textContent =
+      new Date().toLocaleTimeString("ro-RO", {hour:'2-digit', minute:'2-digit'});
+    requestAnimationFrame(()=>setTimeout(tickClock, 500));
+  }
+  tickClock();
+
+  async function findAngajatByScanValue(scanVal){
+    const v = String(scanVal).trim();
+
+    // 1) încearcă după badge (dacă există în documente)
+    let snap = await getDocs(query(collection(db,"angajati"), where("badge","==", v)));
+    if (!snap.empty) return snap.docs[0].data();
+
+    // 2) caută după nume exact (fără slug în DB)
+    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v)));
+    if (!snap.empty) return snap.docs[0].data();
+
+    // 3) fallback toleranță upper/lower (opțional)
+    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v.toUpperCase())));
+    if (!snap.empty) return snap.docs[0].data();
+
+    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v.toLowerCase())));
+    if (!snap.empty) return snap.docs[0].data();
+
+    return null;
   }
 
-  // ---------- Helpers ----------
-  const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
-  const toHHMM = mins => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
-  const today  = new Date();
-  const anCurent  = today.getFullYear();
-  const lunaNum   = today.getMonth()+1;
-  const ziNum     = today.getDate();
+  // Adaugă minutele la o zi dată (într-un transaction)
+  async function addMinutesForDay(tx, {nume, tura}, dateObj, addMin){
+    if (addMin <= 0) return;
 
-  // Normalizează textul de la scanner (curăță spații / prefixe de tip "XYZ:VALOARE")
-  function normScan(s){
-    let v = String(s || '').trim();
-    const i = v.indexOf(':');
-    if (i !== -1 && i < v.length - 1) v = v.slice(i+1).trim();
-    return v;
-  }
+    const an   = dateObj.getFullYear();
+    const luna = dateObj.getMonth()+1;
+    const zi   = dateObj.getDate();
 
-  // ---------- Angajați ----------
-  let angajati = [];
-  await loadAngajati();
+    const rowId  = `${slug(nume)}_${an}_${String(luna).padStart(2,'0')}_${String(zi).padStart(2,'0')}_tura${tura}`;
+    const rowRef = doc(db, "pontaj_lunar", rowId);
+    const rowSnap = await tx.get(rowRef);
 
-  async function loadAngajati(){
-    const snap = await getDocs(collection(db,'angajati'));
-    angajati = [];
-    snap.forEach(d => {
-      const a = d.data();
-      if (a.activ !== false) {
-        angajati.push({
-          nume: a.nume,
-          tura: Number(a.tura || 1),
-          badge: (a.badge || slug(a.nume))
-        });
+    let totalMin = addMin;
+    if (rowSnap.exists()) {
+      const v = String(rowSnap.data().ora || "").trim().toUpperCase();
+      const mm = v.match(/^(\d{1,2}):(\d{2})$/);
+      if (mm) {
+        const h = Number(mm[1]), m = Number(mm[2]);
+        if (!isNaN(h) && !isNaN(m)) totalMin += h*60 + m;
       }
-    });
+    }
+    tx.set(rowRef, { nume, zi, luna, an, ora: toHHMM(totalMin), tura }, { merge: true });
   }
 
-  // Căutare insensibilă la caz pentru badge și cu slug pentru nume
-  function findEmployeeByCode(codeRaw){
-    const code   = normScan(codeRaw);
-    const codeUC = code.toUpperCase();
-    return angajati.find(a =>
-      (a.badge && String(a.badge).toUpperCase() === codeUC) ||
-      slug(a.nume) === code.toLowerCase()
-    ) || null;
-  }
+  // Împarte o sesiune între mai multe zile dacă trece de miezul nopții
+  async function writeSessionMinutes(tx, emp, start, end){
+    const startDay = new Date(start.getFullYear(), start.getMonth(), start.getDate());
+    const endDay   = new Date(end.getFullYear(), end.getMonth(), end.getDate());
 
-  // ---------- Persistență eveniment ----------
-  async function saveEvent(nume, tura, type){
-    await addDoc(collection(db,'pontaj_events'), {
-      nume, tura, type,
-      ts: Date.now(),
-      day: new Date().toISOString().slice(0,10)
-    });
+    let cursorStart = new Date(start); // momentul curent din segment
+    while (startDay.getTime() !== endDay.getTime()
+      ? cursorStart.getTime() < end.getTime()
+      : false) {
+      const nextMidnight = new Date(cursorStart.getFullYear(), cursorStart.getMonth(), cursorStart.getDate()+1, 0,0,0,0);
+      const segEnd = Math.min(nextMidnight.getTime(), end.getTime());
+      const segMin = Math.max(0, Math.round((segEnd - cursorStart.getTime())/60000));
+      await addMinutesForDay(tx, emp, cursorStart, segMin);
+      if (segEnd === end.getTime()) return; // ultimul segment
+      cursorStart = new Date(segEnd);
+    }
 
-    if (type === 'out'){
-      const all = await getDocs(query(
-        collection(db,'pontaj_events'),
-        where('nume','==',nume),
-        where('day','==', new Date().toISOString().slice(0,10))
-      ));
-      const rows = [];
-      all.forEach(d=>rows.push(d.data()));
-      const ins = rows.filter(r=>r.type==='in').sort((a,b)=>b.ts-a.ts)[0];
-      if (!ins) return;
-
-      const mins = Math.round((Date.now() - ins.ts)/60000);
-      if (mins > 0 && mins < 960){
-        const id = `${slug(nume)}_${anCurent}_${String(lunaNum).padStart(2,'0')}_${String(ziNum).padStart(2,'0')}_tura${tura}`;
-        await setDoc(doc(db,'pontaj_lunar', id), { nume, zi:ziNum, luna:lunaNum, an:anCurent, tura, ora: toHHMM(mins) });
-      }
+    // Dacă e aceeași zi (cea mai comună situație)
+    if (startDay.getTime() === endDay.getTime()){
+      const mins = Math.max(0, Math.round((end - start)/60000));
+      await addMinutesForDay(tx, emp, start, mins);
     }
   }
 
-  // ---------- Scan logic (debounce + Enter) ----------
-  const scanInput = document.getElementById('scanInput');
-  let lastScan = { text:'', at:0 };
-  let scanTimer = null;
-  let isProcessing = false;
+  async function onScanBadgeOrName(scanText){
+    const input = document.getElementById("scanInput");
+    const statusText = document.getElementById("statusText");
+    const lastAction = document.getElementById("lastAction");
+    const lastEmployee = document.getElementById("lastEmployee");
+    const lastStart = document.getElementById("lastStart");
+    const lastStop  = document.getElementById("lastStop");
+    const ok = document.getElementById("beepOk");
+    const err = document.getElementById("beepErr");
 
-  function processScan(textRaw){
-    if (isProcessing) return;
-    const text = normScan(textRaw);
-    if (!text) return;
+    const code = String(scanText||"").trim();
+    if (!code) { err.play?.(); return; }
 
-    isProcessing = true;
-
-    (async ()=>{
-      // reține pentru anti-dubluri
-      const now = Date.now();
-      if (text === lastScan.text && now - lastScan.at < 2000) {
-        isProcessing = false;
-        return;
-      }
-      lastScan = { text, at: now };
-
-      let emp = findEmployeeByCode(text);
+    try{
+      statusText.textContent = "Caut angajat…";
+      const emp = await findAngajatByScanValue(code);
       if (!emp) {
-        // poate a fost adăugat/actualizat badge-ul
-        await loadAngajati();
-        emp = findEmployeeByCode(text);
-      }
-
-      if (!emp) {
-        beepErr.play();
-        addLog(`[${new Date().toLocaleTimeString()}] Necunoscut: ${text}`);
-        toast('Cod necunoscut', false);
-        scanInput.value = '';     // golește doar DUPĂ procesare
-        isProcessing = false;
+        statusText.innerHTML = `<span class="err">Cod necunoscut</span>`;
+        addLog(`Eroare: cod necunoscut (${code})`);
+        err.play?.();
         return;
       }
 
-      // Toggle in/out
-      const todayEvents = await getDocs(query(
-        collection(db,'pontaj_events'),
-        where('nume','==',emp.nume),
-        where('day','==', new Date().toISOString().slice(0,10))
-      ));
-      const rows = [];
-      todayEvents.forEach(d=>rows.push(d.data()));
-      const lastType = rows.sort((a,b)=>b.ts-a.ts)[0]?.type || 'out';
-      const newType  = (lastType === 'in') ? 'out' : 'in';
+      const nume = emp.nume;
+      const tura = Number(emp.tura || 1);
+      const actRef = doc(db, "pontaje_active", slug(nume));
 
-      await saveEvent(emp.nume, emp.tura, newType);
-     const actiune = newType === 'in' ? 'Intrare' : 'Ieșire';
-beepOk.play();
-toast(`${emp.nume}: ${actiune} înregistrată`, true);
-addLog(`[${new Date().toLocaleTimeString()}] ${emp.nume} – ${actiune}`);
+      await runTransaction(db, async (tx)=>{
+        const now = new Date();
+        const actSnap = await tx.get(actRef);
 
+        if (!actSnap.exists()) {
+          // PORNEȘTE sesiunea
+          tx.set(actRef, { nume, tura, startTs: now.toISOString() }, { merge: true });
+          statusText.innerHTML = `<span class="ok">Intrare înregistrată</span>`;
+          lastAction.textContent = "Intrare";
+          lastEmployee.textContent = `${nume} (Tura ${tura})`;
+          lastStart.textContent = fmtTime(now);
+          lastStop.textContent  = "—";
+          addLog(`IN: ${nume} @ ${fmtTime(now)}`);
+          ok.play?.();
+          return;
+        }
 
+        // ÎNCHIDE sesiunea
+        const data = actSnap.data();
+        const start = new Date(data.startTs);
+        const end   = now;
 
+        // scrie minutele (inclusiv split la miezul nopții)
+        await writeSessionMinutes(tx, {nume, tura}, start, end);
 
-      scanInput.value = '';       // golește la final
-      isProcessing = false;
-      scanInput.focus();
-    })().catch(e=>{
-      console.warn('processScan error:', e);
-      isProcessing = false;
-    });
+        tx.delete(actRef);
+
+        statusText.innerHTML = `<span class="ok">Ieșire înregistrată</span>`;
+        lastAction.textContent = "Ieșire";
+        lastEmployee.textContent = `${nume} (Tura ${tura})`;
+        lastStart.textContent = fmtTime(start);
+        lastStop.textContent  = fmtTime(end);
+
+        const diffMin = Math.max(0, Math.round((end - start)/60000));
+        addLog(`OUT: ${nume} @ ${fmtTime(end)} (+${toHHMM(diffMin)})`);
+        ok.play?.();
+      });
+
+    }catch(e){
+      console.error(e);
+      statusText.innerHTML = `<span class="err">Eroare la scanare</span>`;
+      addLog(`Eroare: ${e.message||e}`);
+      err.play?.();
+    }finally{
+      input.value = "";
+      input.focus();
+    }
   }
 
-  // Debounce pe input (~120ms așteaptă finalul scanării)
-  scanInput.addEventListener('input', ()=>{
-    clearTimeout(scanTimer);
-    const current = scanInput.value;     // NU goli aici!
-    scanTimer = setTimeout(()=> processScan(current), 120);
-  });
+  // ==== UI ====
+  const input = document.getElementById("scanInput");
+  const scanBtn = document.getElementById("scanBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const autoSubmit = document.getElementById("autoSubmit");
 
-  // Procesează imediat la Enter (dacă scannerul trimite CR/LF la final)
-  scanInput.addEventListener('keydown', e=>{
-    if (e.key === 'Enter') {
+  // Focus permanent pe input (util la kiosk)
+  window.addEventListener("click", ()=> input.focus());
+  window.addEventListener("keydown", (e)=>{
+    if (e.key === "Enter" && autoSubmit.checked){
       e.preventDefault();
-      clearTimeout(scanTimer);
-      processScan(scanInput.value);
+      onScanBadgeOrName(input.value);
     }
   });
+  scanBtn.addEventListener("click", ()=> onScanBadgeOrName(input.value));
+  clearBtn.addEventListener("click", ()=>{ input.value=""; input.focus(); });
 
-  // Autofocus & select
-  window.addEventListener('click', ()=> scanInput.focus());
-  scanInput.addEventListener('focus', ()=> scanInput.select());
 </script>
 </body>
 </html>
