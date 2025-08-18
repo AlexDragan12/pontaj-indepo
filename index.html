@@ -713,6 +713,11 @@ window.codBareAngajat = async function () {
     }
   });
 }
+// helper pt. escape HTML – trebuie să fie în același <script type="module"> unde e incarcaAdmin()
+const esc = (s) => String(s ?? "").replace(/[&<>"']/g, m => (
+  {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[m]
+));
+
     async function incarcaAdmin(){
   buildHeadAdmin();
   setLoading(true);
