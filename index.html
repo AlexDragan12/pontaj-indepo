@@ -453,67 +453,67 @@ window.codBareAngajat = async function () {
 // funcție globală pt. onclick (IMPORTANT: pe window)
 // Înlocuiește TOT conținutul funcției globale cu asta:
 // ——— REPLACE TOTAL: window.printBadge ———
+// ——— REPLACE: window.printBadge (monocrom, fără "Acces/Pontaj") ———
 window.printBadge = async function(nume){
   if (!nume) return;
 
-  // 1) date angajat (badge/tură)
+  // 1) Date angajat (badge / tură)
   let a = { nume, tura: 1 };
-  try{
+  try {
     const snap = await getDocs(query(collection(db,"angajati"), where("nume","==", nume)));
     if (!snap.empty) a = snap.docs[0].data();
-  }catch{}
+  } catch {}
 
   const payload = a.badge || a.nume || nume;
   const tura    = a.tura || 1;
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[m]));
   const logoURL = new URL('sigla.png', location.href).href; // absolut pt. iframe
 
-  // 2) layout de print, stil modern + fără textul codului
+  // 2) Layout monocrom, simplu
   const html = `<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <title>Badge ${esc(a.nume||nume)}</title>
 <style>
-  @page { size: 85.6mm 54mm; margin: 0 } /* format card ID-1 */
-  :root {
-    --bg:#ffffff; --fg:#0f172a; --muted:#334155;
-    --brand:#0ea5e9; --brand2:#2563eb; /* poți schimba culorile */
-    --border:#e5e7eb;
+  @page { size: 85.6mm 54mm; margin: 0 }           /* format card ID-1 */
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact }
+  :root{
+    --bg:#ffffff; --fg:#111111; --muted:#555555; --ink:#000000; --border:#dddddd;
   }
-  /* asigură culorile la print */
-  * {-webkit-print-color-adjust: exact; print-color-adjust: exact}
   html,body{height:100%}
   body{
     margin:0; background:var(--bg); color:var(--fg);
-    font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    font-family: Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Arial, sans-serif;
     display:flex; align-items:center; justify-content:center;
   }
   .card{
     width:85.6mm; height:54mm; box-sizing:border-box; border-radius:4mm;
-    border:1px solid var(--border); padding:0; overflow:hidden; position:relative;
+    border:1px solid var(--border); background:#fff; position:relative; overflow:hidden;
   }
-  /* bandă sus cu logo */
+
+  /* bandă neagră sus (slim), fără text */
   .top{
-    height:14mm; padding:0 5mm; display:flex; align-items:center; justify-content:space-between;
-    background: linear-gradient(90deg, var(--brand2), var(--brand));
-    color:#fff;
+    height:8mm; padding:0 6mm; display:flex; align-items:center; justify-content:flex-start;
+    background:#000; color:#fff;
   }
-  .logo{ height:9mm; object-fit:contain; filter: drop-shadow(0 1px 2px rgba(0,0,0,.25)); }
-  .brand{ font-weight:700; font-size:10pt; letter-spacing:.3px }
+  .logo{ height:6mm; object-fit:contain; }
 
   /* conținut */
-  .body{ padding:3.5mm 6mm 2.5mm 6mm; display:grid; grid-template-rows:auto auto 1fr; row-gap:1.5mm }
-  .name{ font-size:16pt; font-weight:800; line-height:1.05 }
-  .meta{ font-size:9pt; color:var(--muted) }
+  .body{ padding:5mm 6mm 2mm 6mm; display:grid; gap:2.5mm }
+  .name{
+    font-size:17pt; font-weight:800; letter-spacing:.3px; line-height:1.06;
+    text-transform:uppercase;
+  }
+  .meta{ font-size:9.5pt; color:var(--muted) }
   .pill{
-    display:inline-block; padding:2px 7px; border-radius:999px; font-weight:700; font-size:8.5pt;
-    background: color-mix(in oklab, var(--brand) 15%, #eef2ff); color:#0b1320; border:1px solid #dbeafe;
+    display:inline-block; padding:2px 8px; border-radius:999px; font-weight:700; font-size:9pt;
+    border:1px solid #000; color:#000;
   }
 
-  /* barcode jos, fără text */
+  /* barcode jos (fără text) */
   .barcode-wrap{
-    position:absolute; left:6mm; right:6mm; bottom:4.5mm; height:18mm;
+    position:absolute; left:6mm; right:6mm; bottom:4mm; height:18mm;
     display:flex; align-items:center; justify-content:center;
-    border-top:1px dashed #e5e7eb;
+    border-top:1px solid var(--border);
   }
   #barcode{ width:100%; height:100%; }
 </style>
@@ -522,7 +522,6 @@ window.printBadge = async function(nume){
   <div class="card">
     <div class="top">
       <img class="logo" src="${logoURL}" onerror="this.style.display='none'">
-      <div class="brand">Acces / Pontaj</div>
     </div>
     <div class="body">
       <div class="name">${esc(a.nume||nume)}</div>
@@ -539,12 +538,12 @@ window.printBadge = async function(nume){
       try{
         JsBarcode("#barcode", ${JSON.stringify(payload)}, {
           format: "CODE128",
-          displayValue: false,       // <-- FĂRĂ textul codului
+          displayValue: false,   // fără text sub cod
           lineColor: "#000000",
           background: "#ffffff",
           margin: 0,
-          height: 72,                // ~18mm (depinde de DPI)
-          width: 2                   // grosimea liniilor, ajustează 1.8–2.2 dacă vrei
+          height: 72,            // ~18mm
+          width: 2               // grosimea liniilor (1.8–2.2 dacă vrei)
         });
         setTimeout(function(){ window.print(); }, 120);
       }catch(e){
@@ -554,7 +553,7 @@ window.printBadge = async function(nume){
   <\/script>
 </body></html>`;
 
-  // 3) print în iframe (fără pop-up) + cleanup
+  // 3) Print în iframe (fără pop-up) + cleanup
   const iframe = document.createElement('iframe');
   iframe.style.cssText = 'position:fixed;right:0;bottom:0;width:0;height:0;border:0;visibility:hidden';
   document.body.appendChild(iframe);
@@ -568,6 +567,7 @@ window.printBadge = async function(nume){
   const doc = iframe.contentDocument || iframe.contentWindow.document;
   doc.open(); doc.write(html); doc.close();
 };
+
 
     const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
     const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
