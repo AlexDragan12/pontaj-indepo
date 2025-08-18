@@ -2,381 +2,204 @@
 <html lang="ro">
 <head>
   <meta charset="UTF-8" />
-  <title>Scanare Pontaj – InDepo</title>
+  <title>Scanare Pontaj</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet" />
   <style>
     :root{
       --bg:#0e1b2b; --card:#16243a; --text:#f5f8ff; --muted:#9bb1d6;
-      --accent:#00c6ff; --accent2:#ff4f81; --ok:#19c37d; --warn:#f7b32b; --err:#e74c3c; --border:#2a3a55;
-      --ink:#0b1320; --inkmuted:#334155;
+      --accent:#00c6ff; --ok:#19c37d; --err:#e74c3c; --border:#2a3a55;
     }
     *{box-sizing:border-box}
     html,body{height:100%}
-    body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);}
-
-    /* Header */
-    header{
-      display:flex;align-items:center;justify-content:center;gap:14px;
-      padding:18px 18px;border-bottom:1px solid #0b2e58;
-      background:linear-gradient(90deg,#062a4d 0%,#0d3c75 60%,#1147a5 100%);
-      position:sticky;top:0;z-index:10;
+    body{margin:0;font-family:Inter,system-ui,Segoe UI,Arial,sans-serif;background:var(--bg);color:var(--text);display:flex;align-items:center;justify-content:center}
+    .wrap{width:100%;max-width:680px;padding:24px}
+    header{display:flex;flex-direction:column;align-items:center;gap:10px;margin-bottom:18px;text-align:center}
+    header img{height:80px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);box-shadow:0 6px 24px rgba(0,0,0,.25)}
+    header h1{margin:0;font-size:24px;letter-spacing:.3px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:20px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
+    .scanbox{display:flex;gap:10px}
+    .scanbox input{
+      flex:1;padding:18px 16px;border-radius:14px;border:1px solid var(--border);
+      background:#0f2136;color:#fff;font-size:22px;line-height:28px;outline:none
     }
-    header img{height:64px;border-radius:12px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.15);box-shadow:0 6px 24px rgba(0,0,0,.25)}
-    header h1{margin:0;font-size:22px;letter-spacing:.3px}
-
-    /* Layout */
-    main{max-width:980px;margin:22px auto;padding:0 16px}
-    .stack{display:grid;gap:16px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:0 10px 30px rgba(0,0,0,.22)}
-    .card h2{margin:0 0 10px 0;font-size:16px;color:#d9e6ff}
-    .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
-
-    /* Scan box mare (kiosk-ish) */
-    .scanbox{display:flex;flex-wrap:wrap;gap:10px;align-items:center}
-    .scanbox input[type="text"]{
-      flex:1 1 560px;min-width:280px;
-      padding:18px 16px;border-radius:14px;border:1px solid var(--border);
-      background:#0f2136;color:#fff;font-size:22px;line-height:28px;outline:none;
-      box-shadow:inset 0 1px 0 rgba(255,255,255,.06)
-    }
-    .btn{
-      cursor:pointer;border:1px solid var(--border);background:#163555;color:#fff;border-radius:12px;
-      padding:12px 16px;font-weight:700;letter-spacing:.2px
-    }
-    .btn:hover{filter:brightness(1.06)}
-    .btn.primary{background:var(--accent);color:#00111a;border:none}
-    .btn.ghost{background:#0f2238}
-    .btn.link{background:transparent;border-color:transparent;text-decoration:underline}
-
-    .controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:10px}
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 12px;border:1px solid var(--border);border-radius:999px;background:#0f2238;color:#cfe3ff;font-size:12px}
-    .pill input{transform:scale(1.1)}
-    .timepill{margin-left:auto}
-
-    /* Banner status */
-    .banner{border-radius:14px;padding:12px 14px;border:1px solid var(--border);display:flex;align-items:center;gap:10px}
-    .banner .em{font-size:18px}
-    .banner.ok{background:rgba(25,195,125,.15);border-color:rgba(25,195,125,.35)}
-    .banner.warn{background:rgba(247,179,43,.12);border-color:rgba(247,179,43,.35)}
-    .banner.err{background:rgba(231,76,60,.15);border-color:rgba(231,76,60,.45)}
-
-    /* Grid info */
-    .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px}
+    .btn{cursor:pointer;border:0;background:var(--accent);color:#00111a;border-radius:12px;padding:14px 18px;font-weight:700;letter-spacing:.2px}
+    .hint{color:var(--muted);font-size:12px;margin-top:8px}
+    .status{margin-top:16px;border:1px solid var(--border);border-radius:14px;padding:14px 16px;display:flex;align-items:center;gap:12px}
+    .badge{display:inline-block;border-radius:999px;padding:6px 10px;font-weight:700}
+    .ok {background:rgba(25,195,125,.18); color:#b8ffd9}
+    .err{background:rgba(231,76,60,.18); color:#ffd0d0}
+    .neutral{background:#0f2136; color:#cfe3ff}
+    .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
     .kv{background:#0f2136;border:1px solid var(--border);border-radius:12px;padding:10px 12px}
-    .kv label{display:block;font-size:11px;letter-spacing:.3px;color:var(--muted);margin-bottom:4px}
+    .kv label{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
     .kv div{font-weight:700}
-
-    /* Jurnal pliabil */
-    details{background:#0f2136;border:1px solid var(--border);border-radius:12px;padding:10px}
-    details summary{cursor:pointer;font-weight:600;color:#cfe3ff}
-    .log{margin-top:8px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;background:#09142b;border-radius:10px;padding:10px;max-height:220px;overflow:auto;border:1px solid #0e2a55;white-space:pre-wrap}
-
-    /* Footer nav */
-    .footer-nav{display:flex;gap:10px;flex-wrap:wrap}
-
-    /* Kiosk mode = fonturi mai mari */
-    .kiosk .scanbox input[type="text"]{font-size:28px;padding:22px 18px}
-    .kiosk header img{height:72px}
-    .kiosk header h1{font-size:24px}
-    @media (max-width:840px){
-      .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
-    }
+    .footer{display:flex;justify-content:center;margin-top:14px}
+    .link{color:#a6c8ff;text-decoration:none}
+    @media (max-width:560px){ .grid{grid-template-columns:1fr} .scanbox{flex-direction:column} }
   </style>
 </head>
 <body>
-<header>
-  <img src="sigla.png" alt="Siglă" />
-  <h1>Scanare pontaj</h1>
-</header>
+  <div class="wrap">
+    <header>
+      <img src="sigla.png" alt="Siglă" />
+      <h1>Scanează pentru Intrare / Ieșire</h1>
+    </header>
 
-<main class="stack" id="root">
-  <!-- Card scanare -->
-  <section class="card">
-    <h2>Scanează badge sau numele exact</h2>
-    <div class="scanbox">
-      <input id="scanInput" type="text" placeholder="Ex: 3NUU3RRJ sau Popescu Ion" autocomplete="off" autofocus />
-      <button class="btn primary" id="scanBtn">Scanează</button>
-      <button class="btn ghost" id="clearBtn" title="Golește">Golește</button>
+    <div class="card">
+      <div class="scanbox">
+        <input id="scanInput" type="text" placeholder="Scanează badge sau scrie numele exact" autocomplete="off" autofocus />
+        <button class="btn" id="scanBtn">Scanează</button>
+      </div>
+      <div class="hint">Scannerul trimite automat Enter. Manual: tastează numele/badge și apasă Enter sau „Scanează”.</div>
+
+      <div class="status" id="statusBox">
+        <span class="badge neutral" id="statusBadge">Aștept</span>
+        <div>
+          <div id="statusTitle" style="font-weight:700">Aștept scanare…</div>
+          <div id="statusSub" style="color:var(--muted);font-size:12px">Introduceți codul și apăsați Enter.</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="kv"><label>Angajat</label><div id="empName">—</div></div>
+        <div class="kv"><label>Stare sesiune</label><div id="sessState">—</div></div>
+        <div class="kv"><label>Start</label><div id="tStart">—</div></div>
+        <div class="kv"><label>Stop</label><div id="tStop">—</div></div>
+      </div>
+
+      <div class="footer"><a class="link" href="index.html">⟵ Înapoi la Pontaj</a></div>
     </div>
-    <div class="controls">
-      <label class="pill"><input type="checkbox" id="autoSubmit" checked /> Trimite la Enter</label>
-      <label class="pill"><input type="checkbox" id="soundOn" checked /> Sunet confirmare</label>
-      <label class="pill"><input type="checkbox" id="kioskMode" /> Kiosk mode</label>
-      <span class="pill timepill" id="timeNow">—:—</span>
-    </div>
-  </section>
+  </div>
 
-  <!-- Status + info -->
-  <section class="card">
-    <div class="banner" id="statusBanner">
-      <span class="em">ℹ️</span>
-      <strong id="statusTitle">Aștept scanare…</strong>
-      <span id="statusSub" style="color:var(--muted);margin-left:6px"></span>
-    </div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
+    import {
+      getFirestore, collection, query, where, getDocs, doc, runTransaction
+    } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
 
-    <div class="grid" style="margin-top:12px">
-      <div class="kv"><label>Ultima acțiune</label><div id="lastAction">—</div></div>
-      <div class="kv"><label>Angajat</label><div id="lastEmployee">—</div></div>
-      <div class="kv"><label>Start</label><div id="lastStart">—</div></div>
-      <div class="kv"><label>Stop</label><div id="lastStop">—</div></div>
-    </div>
+    // === Firebase (identic cu index.html) ===
+    const firebaseConfig = {
+      apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
+      authDomain: "pontaj2025.firebaseapp.com",
+      projectId: "pontaj2025",
+      storageBucket: "pontaj2025.appspot.com",
+      messagingSenderId: "732863008010",
+      appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
+    };
+    const app = initializeApp(firebaseConfig);
+    const db  = getFirestore(app);
 
-    <div class="grid" style="margin-top:12px">
-      <div class="kv"><label>Durată adăugată</label><div id="lastAdded">—</div></div>
-      <div class="kv"><label>Zile afectate</label><div id="daysTouched">—</div></div>
-      <div class="kv"><label>Ora curentă</label><div id="clockEcho">—</div></div>
-      <div class="kv"><label>Stare sesiune</label><div id="sessionState">—</div></div>
-    </div>
-  </section>
+    // === Mini utilitare (câteva linii, fără complicații) ===
+    const $ = id => document.getElementById(id);
+    const slug = s => String(s||"").toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
+    const toHHMM = mins => `${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+    const fmt = d => d.toLocaleTimeString("ro-RO",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
 
-  <!-- Jurnal -->
-  <section class="card">
-    <details>
-      <summary>Jurnal local (ultimele 50)</summary>
-      <div class="log" id="logBox"></div>
-    </details>
-    <div class="footer-nav" style="margin-top:10px">
-      <a class="btn" href="index.html">⟵ Înapoi la Pontaj</a>
-      <a class="btn link" href="admin.html" onclick="return false;">(opțional) link Admin</a>
-    </div>
-  </section>
-</main>
+    function setStatus(kind, title, sub=""){
+      const badge = $("statusBadge"), box = $("statusBox");
+      badge.className = "badge " + (kind==="ok"?"ok":kind==="err"?"err":"neutral");
+      badge.textContent = kind==="ok" ? "OK" : kind==="err" ? "Eroare" : "Aștept";
+      $("statusTitle").textContent = title;
+      $("statusSub").textContent = sub;
+    }
 
-<!-- sunete mici inline (placeholders) -->
-<audio id="beepOk" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaAAA//8AAP///wAA" type="audio/wav"></audio>
-<audio id="beepErr" preload="auto"><source src="data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAESsAACJWAAACABYAaAAA//8AAP///wAA" type="audio/wav"></audio>
+    // Caută angajatul: mai întâi după badge (dacă ai câmpul), altfel după nume exact
+    async function findEmp(val){
+      const v = String(val).trim();
+      let s = await getDocs(query(collection(db,"angajati"), where("badge","==", v)));
+      if (!s.empty) return s.docs[0].data();
+      s = await getDocs(query(collection(db,"angajati"), where("nume","==", v)));
+      if (!s.empty) return s.docs[0].data();
+      return null;
+    }
 
-<!-- Firebase -->
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-app.js";
-  import {
-    getFirestore, collection, query, where, getDocs, doc, getDoc, setDoc, runTransaction
-  } from "https://www.gstatic.com/firebasejs/12.0.0/firebase-firestore.js";
+    // Scrie minute pe zi (adună la ce există)
+    async function addMinutesForDay(tx, nume, tura, dateObj, addMin){
+      if (addMin <= 0) return;
+      const an = dateObj.getFullYear(), luna = dateObj.getMonth()+1, zi = dateObj.getDate();
+      const id  = `${slug(nume)}_${an}_${String(luna).padStart(2,'0')}_${String(zi).padStart(2,'0')}_tura${tura}`;
+      const ref = doc(db, "pontaj_lunar", id);
+      const snap = await tx.get(ref);
+      let total = addMin;
+      if (snap.exists()){
+        const v = String(snap.data().ora || "");
+        const m = v.match(/^(\d{1,2}):(\d{2})$/);
+        if (m) total += Number(m[1])*60 + Number(m[2]);
+      }
+      tx.set(ref, { nume, zi, luna, an, ora: toHHMM(total), tura }, { merge: true });
+    }
 
-  // === Config identic cu index.html ===
-  const firebaseConfig = {
-    apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
-    authDomain: "pontaj2025.firebaseapp.com",
-    projectId: "pontaj2025",
-    storageBucket: "pontaj2025.appspot.com",
-    messagingSenderId: "732863008010",
-    appId: "1:732863008010:web:e2b7ed0220f9fb4bcc3ef3"
-  };
-  const app = initializeApp(firebaseConfig);
-  const db  = getFirestore(app);
+    // Împarte sesiunea dacă trece de miezul nopții (cod scurt)
+    function segments(start, end){
+      const segs = [];
+      let cur = new Date(start);
+      while(true){
+        const midnight = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()+1);
+        const endTs = Math.min(midnight.getTime(), end.getTime());
+        const mins = Math.max(0, Math.round((endTs - cur.getTime())/60000));
+        segs.push({ d: new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()), m: mins });
+        if (endTs === end.getTime()) break;
+        cur = new Date(endTs);
+      }
+      return segs;
+    }
 
-  // === Helperi UI ===
-  const $ = (id)=>document.getElementById(id);
-  const setBanner = (type, title, sub="")=>{
-    const el = $("statusBanner");
-    el.classList.remove("ok","warn","err");
-    if(type) el.classList.add(type);
-    $("statusTitle").textContent = title;
-    $("statusSub").textContent = sub;
-    el.querySelector(".em").textContent = type==="ok" ? "✅" : type==="err" ? "⛔" : "ℹ️";
-  };
-  function tickClock(){
-    const t = new Date().toLocaleTimeString("ro-RO",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    $("timeNow").textContent = t.slice(0,5);
-    $("clockEcho").textContent = t;
-    requestAnimationFrame(()=>setTimeout(tickClock, 500));
-  }
-  tickClock();
+    async function handleScan(raw){
+      const code = String(raw||"").trim();
+      if (!code){ setStatus("neutral","Aștept scanare…","Introduceți codul și apăsați Enter."); return; }
 
-  // === Utilitare date ===
-  const slug = s => String(s||"").toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
-  const toHHMM = (mins)=>`${String(Math.floor(mins/60)).padStart(2,'0')}:${String(mins%60).padStart(2,'0')}`;
+      try{
+        setStatus("neutral","Caut angajat…","");
+        const emp = await findEmp(code);
+        if (!emp){ setStatus("err","Cod necunoscut","Nu am găsit angajatul."); return; }
 
-  function addLog(s){
-    const ts  = new Date().toLocaleString("ro-RO");
-    const line = `[${ts}] ${s}`;
-    const box = $("logBox");
-    box.textContent = line + "\n" + box.textContent;
-    const arr = JSON.parse(localStorage.getItem("scan_log")||"[]");
-    arr.unshift(line); while(arr.length>50) arr.pop();
-    localStorage.setItem("scan_log", JSON.stringify(arr));
-  }
-  (function hydrateLog(){
-    const arr = JSON.parse(localStorage.getItem("scan_log")||"[]");
-    $("logBox").textContent = arr.join("\n");
-  })();
+        const nume = emp.nume;
+        const tura = Number(emp.tura || 1);
+        const act  = doc(db, "pontaje_active", slug(nume));
 
-  // === Căutare angajat după badge (dacă există) sau nume exact ===
-  async function findAngajatByScanValue(scanVal){
-    const v = String(scanVal).trim();
-    let snap = await getDocs(query(collection(db,"angajati"), where("badge","==", v)));
-    if (!snap.empty) return snap.docs[0].data();
+        await runTransaction(db, async (tx)=>{
+          const now = new Date();
+          const s = await tx.get(act);
 
-    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v)));
-    if (!snap.empty) return snap.docs[0].data();
+          if (!s.exists()){
+            // Intrare
+            tx.set(act, { nume, tura, startTs: now.toISOString() }, { merge: true });
+            $("empName").textContent = `${nume} (Tura ${tura})`;
+            $("sessState").textContent = "Deschisă";
+            $("tStart").textContent = fmt(now);
+            $("tStop").textContent = "—";
+            setStatus("ok","Intrare înregistrată", `${nume}`);
+            return;
+          }
 
-    // toleranțe (opțional)
-    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v.toUpperCase())));
-    if (!snap.empty) return snap.docs[0].data();
-    snap = await getDocs(query(collection(db,"angajati"), where("nume","==", v.toLowerCase())));
-    if (!snap.empty) return snap.docs[0].data();
+          // Ieșire
+          const start = new Date(s.data().startTs);
+          const end   = now;
+          for (const seg of segments(start, end)){
+            await addMinutesForDay(tx, nume, tura, seg.d, seg.m);
+          }
+          tx.delete(act);
 
-    return null;
-  }
+          $("empName").textContent = `${nume} (Tura ${tura})`;
+          $("sessState").textContent = "Închisă";
+          $("tStart").textContent = fmt(start);
+          $("tStop").textContent  = fmt(end);
+          setStatus("ok","Ieșire înregistrată", `${nume} (+${toHHMM(Math.max(0,Math.round((end-start)/60000)))})`);
+        });
 
-  // === Scriere ore într-o zi (adună la ce există) ===
-  async function addMinutesForDay(tx, {nume, tura}, dateObj, addMin){
-    if (addMin <= 0) return 0;
-    const an   = dateObj.getFullYear();
-    const luna = dateObj.getMonth()+1;
-    const zi   = dateObj.getDate();
-
-    const rowId  = `${slug(nume)}_${an}_${String(luna).padStart(2,'0')}_${String(zi).padStart(2,'0')}_tura${tura}`;
-    const rowRef = doc(db, "pontaj_lunar", rowId);
-    const rowSnap = await tx.get(rowRef);
-
-    let totalMin = addMin;
-    if (rowSnap.exists()) {
-      const v = String(rowSnap.data().ora || "").trim().toUpperCase();
-      const mm = v.match(/^(\d{1,2}):(\d{2})$/);
-      if (mm) {
-        const h = Number(mm[1]), m = Number(mm[2]);
-        if (!isNaN(h) && !isNaN(m)) totalMin += h*60 + m;
+      }catch(e){
+        console.error(e);
+        setStatus("err","Eroare la scanare", e.message || String(e));
+      }finally{
+        const i = $("scanInput"); i.value=""; i.focus();
       }
     }
-    tx.set(rowRef, { nume, zi, luna, an, ora: toHHMM(totalMin), tura }, { merge: true });
-    return addMin;
-  }
 
-  // === Split sesiune dacă trece peste miezul nopții; întoarce segmente pentru UI ===
-  function splitSegments(start, end){
-    const segs = [];
-    let cur = new Date(start);
-    while(true){
-      const midnight = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()+1, 0,0,0,0);
-      const endTs = Math.min(midnight.getTime(), end.getTime());
-      const mins = Math.max(0, Math.round((endTs - cur.getTime())/60000));
-      segs.push({ date: new Date(cur.getFullYear(), cur.getMonth(), cur.getDate()), mins });
-      if (endTs === end.getTime()) break;
-      cur = new Date(endTs);
-    }
-    return segs;
-  }
-
-  // === Scan handler ===
-  async function onScan(codeRaw){
-    const code = String(codeRaw||"").trim();
-    const sound = $("soundOn").checked;
-    const ok = $("beepOk"), err = $("beepErr");
-
-    if (!code){ sound && err.play?.(); return; }
-
-    try{
-      setBanner("", "Caut angajat…", "");
-      const emp = await findAngajatByScanValue(code);
-      if (!emp){
-        setBanner("err", "Cod necunoscut", "Nu am găsit angajatul pentru acest cod.");
-        addLog(`Eroare: cod necunoscut (${code})`);
-        sound && err.play?.();
-        return;
-      }
-
-      const nume = emp.nume;
-      const tura = Number(emp.tura || 1);
-      const actRef = doc(db, "pontaje_active", slug(nume));
-
-      const result = await runTransaction(db, async (tx)=>{
-        const now = new Date();
-        const actSnap = await tx.get(actRef);
-
-        if (!actSnap.exists()){
-          tx.set(actRef, { nume, tura, startTs: now.toISOString() }, { merge: true });
-          return { type:"in", nume, tura, time: now };
-        }
-
-        // ieșire → distribuie minutele pe zile
-        const start = new Date(actSnap.data().startTs);
-        const end   = now;
-        const segments = splitSegments(start, end);
-        let totalAdded = 0;
-        for (const seg of segments){
-          totalAdded += await addMinutesForDay(tx, {nume,tura}, seg.date, seg.mins);
-        }
-        tx.delete(actRef);
-        return { type:"out", nume, tura, start, end, segments, totalAdded };
-      });
-
-      // UI feedback
-      if (result.type === "in"){
-        setBanner("ok", "Intrare înregistrată", `${result.nume} (Tura ${result.tura})`);
-        $("lastAction").textContent   = "Intrare";
-        $("lastEmployee").textContent = `${result.nume} (Tura ${result.tura})`;
-        $("lastStart").textContent    = result.time.toLocaleTimeString("ro-RO",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-        $("lastStop").textContent     = "—";
-        $("lastAdded").textContent    = "—";
-        $("daysTouched").textContent  = "—";
-        $("sessionState").textContent = "Deschisă";
-        addLog(`IN: ${result.nume} @ ${$("lastStart").textContent}`);
-        sound && ok.play?.();
-      } else {
-        const startStr = result.start.toLocaleTimeString("ro-RO",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-        const endStr   = result.end.toLocaleTimeString("ro-RO",{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-        setBanner("ok", "Ieșire înregistrată", `${result.nume} (Tura ${result.tura})`);
-        $("lastAction").textContent   = "Ieșire";
-        $("lastEmployee").textContent = `${result.nume} (Tura ${result.tura})`;
-        $("lastStart").textContent    = startStr;
-        $("lastStop").textContent     = endStr;
-        $("lastAdded").textContent    = toHHMM(result.totalAdded);
-        $("daysTouched").textContent  = `${result.segments.length}`;
-        $("sessionState").textContent = "Închisă";
-        addLog(`OUT: ${result.nume} @ ${endStr} (+${toHHMM(result.totalAdded)})`);
-        sound && ok.play?.();
-      }
-
-    }catch(e){
-      console.error(e);
-      setBanner("err", "Eroare la scanare", e.message||String(e));
-      addLog(`Eroare: ${e.message||e}`);
-      $("soundOn").checked && $("beepErr").play?.();
-    }finally{
-      $("scanInput").value = "";
-      $("scanInput").focus();
-    }
-  }
-
-  // === UI wiring ===
-  const input = $("scanInput");
-  $("scanBtn").addEventListener("click", ()=> onScan(input.value));
-  $("clearBtn").addEventListener("click", ()=>{ input.value=""; input.focus(); });
-  window.addEventListener("keydown", (e)=>{
-    if (e.key === "Enter" && $("autoSubmit").checked){
-      e.preventDefault();
-      onScan(input.value);
-    }
-  });
-
-  // Preferințe locale (kiosk + sunet + autosubmit)
-  (function hydratePrefs(){
-    const prefs = JSON.parse(localStorage.getItem("scan_prefs")||"{}");
-    if ("autoSubmit" in prefs) $("autoSubmit").checked = !!prefs.autoSubmit;
-    if ("soundOn" in prefs) $("soundOn").checked = !!prefs.soundOn;
-    if ("kioskMode" in prefs) {
-      $("kioskMode").checked = !!prefs.kioskMode;
-      document.body.classList.toggle("kiosk", !!prefs.kioskMode);
-    }
-  })();
-  function savePrefs(){
-    localStorage.setItem("scan_prefs", JSON.stringify({
-      autoSubmit: $("autoSubmit").checked,
-      soundOn: $("soundOn").checked,
-      kioskMode: $("kioskMode").checked
-    }));
-  }
-  $("autoSubmit").addEventListener("change", savePrefs);
-  $("soundOn").addEventListener("change", savePrefs);
-  $("kioskMode").addEventListener("change", ()=>{
-    document.body.classList.toggle("kiosk", $("kioskMode").checked);
-    savePrefs();
-  });
-
-  // Focus permanent (gen kiosk)
-  window.addEventListener("click", ()=> input.focus());
-</script>
+    // Enter + buton
+    $("scanBtn").addEventListener("click", ()=> handleScan($("scanInput").value));
+    window.addEventListener("keydown", (e)=>{ if(e.key==="Enter"){ e.preventDefault(); handleScan($("scanInput").value); }});
+    $("scanInput").focus();
+  </script>
 </body>
 </html>
