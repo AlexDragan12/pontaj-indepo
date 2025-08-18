@@ -238,8 +238,6 @@ select:focus{
 
 /* tabel: rândul Total/+/- să iasă ușor în evidență (ai deja .total) */
 td.total{ font-weight:700; background: #102a42 };
-.summary-row{ background: color-mix(in oklab, var(--brand, #2563eb) 10%, transparent); }
-.summary-row td{ font-weight: 700; }
 header img{ height:56px }
 input[type="text"], select{ border-radius:10px }
 input[type="text"]:focus, select:focus{
@@ -800,28 +798,6 @@ function toMin(hhmm){
   return m ? (+m[1]*60 + +m[2]) : 0;
 }
 function toHHMM(min){ return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); }
-
-// === În interiorul incarcaAdmin(), DUPĂ ce ai creat toate rândurile cu angajați:
-const dayTotals = Array(31).fill(0);
-let grandTotal = 0;
-
-Object.values(map).forEach(p=>{
-  for(let zi=1; zi<=31; zi++){
-    const mins = toMin(p.zile[zi]);
-    dayTotals[zi-1] += mins;
-    grandTotal += mins;
-  }
-});
-
-const trSum = document.createElement('tr');
-trSum.className = 'summary-row';
-trSum.innerHTML = `
-  <td class="name"><strong>Σ Total</strong></td>
-  <td></td>
-  ${dayTotals.map(m => `<td><strong>${m?toHHMM(m):''}</strong></td>`).join('')}
-  <td class="total"><strong>${Math.floor(grandTotal/60)}h ${grandTotal%60}m</strong></td>
-  <td class="total"></td>
-`;
 adminBody.appendChild(trSum);
 
     });
