@@ -451,53 +451,82 @@ window.codBareAngajat = async function () {
     const db  = getFirestore(app);
 
 // funcție globală pt. onclick (IMPORTANT: pe window)
+// Înlocuiește TOT conținutul funcției globale cu asta:
 window.printBadge = async function(nume){
   if (!nume) return;
 
-  // caută angajatul pentru badge/tură
+  // Ia datele angajatului pentru badge/tură
   let a = { nume, tura: 1 };
   try {
-    const snap = await getDocs(query(collection(db, "angajati"), where("nume","==", nume)));
+    const snap = await getDocs(query(collection(db,"angajati"), where("nume","==", nume)));
     if (!snap.empty) a = snap.docs[0].data();
   } catch {}
 
   const payload = a.badge || a.nume || nume;
   const tura    = a.tura || 1;
-  const logoURL = new URL('sigla.png', location.href).href;
-  const esc = s => String(s ?? "").replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;', "'":'&#39;'}[m]));
+  const esc = (s)=>String(s??"").replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  const logoURL = new URL('sigla.png', location.href).href; // absolut, ca să se încarce din iframe
 
-  const html = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>Badge ${esc(a.nume||nume)}</title>
-<style>
-  @page{ size:85.6mm 54mm; margin:0 }
-  html,body{height:100%}
-  body{margin:0; display:flex; align-items:center; justify-content:center; background:#fff; color:#000; font-family:Inter,Arial,sans-serif}
-  .card{ width:85.6mm; height:54mm; box-sizing:border-box; padding:5mm 6mm; border:1px solid #ddd; border-radius:4mm }
-  .top{ display:flex; align-items:center; justify-content:space-between; gap:8px }
-  .logo{ height:10mm; object-fit:contain } .brand{ font-weight:700; font-size:10pt }
-  .name{ margin:6mm 0 2mm 0; font-size:16pt; font-weight:800; line-height:1.1 }
-  .meta{ font-size:9pt; color:#333 } #barcode{ width:100%; height:18mm; } .code{ margin-top:2mm; font-size:11pt; letter-spacing:2px; text-align:center }
-</style></head><body>
-  <div class="card">
-    <div class="top"><img class="logo" src="${logoURL}" onerror="this.style.display='none'"><div class="brand">Acces / Pontaj</div></div>
-    <div class="name">${esc(a.nume||nume)}</div><div class="meta">Tura ${tura}</div>
-    <svg id="barcode"></svg><div class="code">${esc(payload)}</div>
-  </div>
-  <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
-  <script>
-    try{
-      JsBarcode("#barcode", ${JSON.stringify(payload)}, { format:"CODE128", displayValue:false, lineColor:"#000", margin:0, height:60, width:2 });
-      setTimeout(()=>window.print(), 120);
-    }catch(e){
-      document.body.insertAdjacentHTML('beforeend','<p style="color:#c00;margin:8px">Eroare barcode: '+(e.message||e)+'</p>');
-    }
-  <\/script>
-</body></html>`;
+  // HTML-ul pentru imprimare (în iframe)
+  const html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Badge ${esc(a.nume||nume)}</title>
+  <style>
+    @page{ size:85.6mm 54mm; margin:0 } /* card ID-1 */
+    html,body{height:100%}
+    body{margin:0; display:flex; align-items:center; justify-content:center; background:#fff; color:#000; font-family:Inter,Arial,sans-serif}
+    .card{ width:85.6mm; height:54mm; box-sizing:border-box; padding:5mm 6mm; border:1px solid #ddd; border-radius:4mm }
+    .top{ display:flex; align-items:center; justify-content:space-between; gap:8px }
+    .logo{ height:10mm; object-fit:contain }
+    .brand{ font-weight:700; font-size:10pt }
+    .name{ margin:6mm 0 2mm 0; font-size:16pt; font-weight:800; line-height:1.1 }
+    .meta{ font-size:9pt; color:#333 }
+    #barcode{ width:100%; height:18mm }
+    .code{ margin-top:2mm; font-size:11pt; letter-spacing:2px; text-align:center }
+  </style>
+  </head><body>
+    <div class="card">
+      <div class="top">
+        <img class="logo" src="${logoURL}" onerror="this.style.display='none'">
+        <div class="brand">Acces / Pontaj</div>
+      </div>
+      <div class="name">${esc(a.nume||nume)}</div>
+      <div class="meta">Tura ${tura}</div>
+      <svg id="barcode"></svg>
+      <div class="code">${esc(payload)}</div>
+    </div>
 
-  const w = window.open("", "_blank", "noopener,noreferrer");
-  if (!w) { alert("Pop-up blocat. Permite ferestrele pop-up pentru acest site."); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+    <script src="https://cdn.jsdelivr.net/npm/jsbarcode@3.11.6/dist/JsBarcode.all.min.js"><\/script>
+    <script>
+      // după ce se încarcă tot (inclusiv JsBarcode)
+      window.addEventListener('load', function(){
+        try{
+          JsBarcode("#barcode", ${JSON.stringify(payload)}, {
+            format:"CODE128", displayValue:false, lineColor:"#000", margin:0, height:60, width:2
+          });
+          setTimeout(function(){ window.print(); }, 120);
+        }catch(e){
+          document.body.insertAdjacentHTML('beforeend','<p style="color:#c00;margin:8px">Eroare barcode: '+(e.message||e)+'</p>');
+        }
+      });
+    <\/script>
+  </body></html>`;
+
+  // Creează iframe invizibil, scrie HTML-ul și tipărește (fără pop-up)
+  const iframe = document.createElement('iframe');
+  iframe.style.cssText = 'position:fixed; right:0; bottom:0; width:0; height:0; border:0; visibility:hidden;';
+  document.body.appendChild(iframe);
+
+  const cleanup = () => { try { document.body.removeChild(iframe); } catch {} };
+  // curățăm după imprimare (unde e suportat) sau după un mic timeout fallback
+  iframe.onload = () => {
+    // unele browsere trimit afterprint; păstrăm și un fallback
+    iframe.contentWindow.onafterprint = cleanup;
+    setTimeout(cleanup, 5000);
+  };
+
+  const doc = iframe.contentDocument || iframe.contentWindow.document;
+  doc.open(); doc.write(html); doc.close();
 };
-
 
     const slug = s => s.toLowerCase().trim().replace(/\s+/g,'_').replace(/[^\w_-]/g,'');
     const luniRO = ["Ianuarie","Februarie","Martie","Aprilie","Mai","Iunie","Iulie","August","Septembrie","Octombrie","Noiembrie","Decembrie"];
