@@ -220,12 +220,33 @@ tbody tr:active{
     /* Spinner mic */
     .spinner{width:16px;height:16px;border:2px solid #2c4761;border-top-color:#7fb3ff;border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
+    /* === UI polish (override-uri discrete) === */
+header img{ height:56px } /* logo puțin mai mare */
+
+input[type="text"], select{ border-radius:10px }
+
+input[type="text"]:focus,
+select:focus{
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(0,198,255,.18);
+  outline: none;
+}
+
+/* butoane cu feedback consistent */
+.btn:hover{ filter: brightness(1.06) }
+.btn.primary{ background: var(--accent); border-color: transparent; color:#00111a }
+
+/* tabel: rândul Total/+/- să iasă ușor în evidență (ai deja .total) */
+td.total{ font-weight:700; background: #102a42 }
+
   </style>
 </head>
 <body>
   <header>
   <h1>Pontaj - Lunar</h1>
   <img class="logo" src="sigla.png" alt="Sigla" />
+  <a class="btn primary" href="scan.html">Deschide Scan</a>
+
 </header>
 
 
@@ -299,7 +320,7 @@ tbody tr:active{
           </div>
 
           <div class="right">
-            <a class="btn primary" href="scan.html" title="Deschide pagina de scanare">Deschide Scan</a>
+             <a class="btn primary" href="scan.html" title="Deschide pagina de scanare">Deschide Scan</a>
             <button class="btn ghost" id="reloadBtn"><span class="spinner" style="display:none" id="loadSpin"></span> Reîncarcă</button>
             <button class="btn primary" onclick="exportXLSXAdmin()">Export XLSX (Raport)</button>
             <button class="btn primary" onclick="exportPDFAdmin()">Export PDF (Raport)</button>
