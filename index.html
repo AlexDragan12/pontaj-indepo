@@ -221,7 +221,7 @@ tbody tr:active{
     .spinner{width:16px;height:16px;border:2px solid #2c4761;border-top-color:#7fb3ff;border-radius:50%;animation:spin .7s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     /* === UI polish (override-uri discrete) === */
-header img{ height:72px } /* logo puțin mai mare */
+header img{ height: 72px } /* logo puțin mai mare */
 
 input[type="text"], select{ border-radius:10px }
 
@@ -237,8 +237,23 @@ select:focus{
 .btn.primary{ background: var(--accent); border-color: transparent; color:#00111a }
 
 /* tabel: rândul Total/+/- să iasă ușor în evidență (ai deja .total) */
+td.total{ font-weight:700; background: #102a42 };
+.summary-row{ background: color-mix(in oklab, var(--brand, #2563eb) 10%, transparent); }
+.summary-row td{ font-weight: 700; }
+header img{ height:56px }
+input[type="text"], select{ border-radius:10px }
+input[type="text"]:focus, select:focus{
+  border-color:#00c6ff; box-shadow:0 0 0 3px rgba(0,198,255,.18); outline:none;
+}
+.btn:hover{ filter:brightness(1.06) }
 td.total{ font-weight:700; background: #102a42 }
-
+.name-cell{display:flex;align-items:center;gap:8px}
+.badge-btn{
+  cursor:pointer; padding:4px 8px; border-radius:8px;
+  border:1px solid var(--border,#2a3a55);
+  background:var(--brand,#2563eb); color:#fff; font-size:12px; font-weight:700;
+}
+.badge-btn:hover{ filter:brightness(1.06) }
   </style>
 </head>
 <body>
@@ -752,21 +767,58 @@ window.codBareAngajat = async function () {
       const diffClass = diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero';
 
       const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td class="name">${p.nume}</td>
-        <td>${p.tura}</td>
-        ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
-        <td class="total"
-            title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m">
-          ${totalTxt}
-        </td>
-        <td class="total"
-            title="Diferență față de normă">
-          <span class="delta-badge ${diffClass}">${diffTxt}</span>
-        </td>
-      `;
+      const nameCell = `
+  <td class="name name-cell">
+    <span>${esc(p.nume)}</span>
+    <button class="badge-btn" data-nume="${esc(p.nume)}"
+            onclick="printBadge(this.dataset.nume)" title="Tipărește badge">🎟 Tipărește</button>
+  </td>
+`;
+tr.innerHTML = `
+  ${nameCell}
+  <td>${p.tura}</td>
+  ${Array.from({length:31},(_,i)=>`<td>${p.zile[i+1]||""}</td>`).join("")}
+  <td class="total"
+      title="Zile lucrate: ${p.zileLucrate}\nNormă: ${Math.floor(normaTot/60)}h ${normaTot%60}m">
+    ${totalTxt}
+  </td>
+  <td class="total" title="Diferență față de normă">
+    <span class="delta-badge ${diffClass}">${diffTxt}</span>
+  </td>
+`;
+
       adminBody.appendChild(tr);
       count++;
+
+function toMin(hhmm){
+  const m = /^(\d{1,2}):(\d{2})$/.exec(String(hhmm||"").trim());
+  return m ? (+m[1]*60 + +m[2]) : 0;
+}
+function toHHMM(min){ return String(Math.floor(min/60)).padStart(2,'0')+':'+String(min%60).padStart(2,'0'); }
+
+// === În interiorul incarcaAdmin(), DUPĂ ce ai creat toate rândurile cu angajați:
+const dayTotals = Array(31).fill(0);
+let grandTotal = 0;
+
+Object.values(map).forEach(p=>{
+  for(let zi=1; zi<=31; zi++){
+    const mins = toMin(p.zile[zi]);
+    dayTotals[zi-1] += mins;
+    grandTotal += mins;
+  }
+});
+
+const trSum = document.createElement('tr');
+trSum.className = 'summary-row';
+trSum.innerHTML = `
+  <td class="name"><strong>Σ Total</strong></td>
+  <td></td>
+  ${dayTotals.map(m => `<td><strong>${m?toHHMM(m):''}</strong></td>`).join('')}
+  <td class="total"><strong>${Math.floor(grandTotal/60)}h ${grandTotal%60}m</strong></td>
+  <td class="total"></td>
+`;
+adminBody.appendChild(trSum);
+
     });
 
     if (!count) {
@@ -797,8 +849,34 @@ window.codBareAngajat = async function () {
       const head = [...document.querySelectorAll("#admin_head th")].map(th=>th.textContent);
       const rows = [...document.querySelectorAll("#admin_body tr")].map(tr => [...tr.querySelectorAll("td")].map(td => td.textContent.trim()));
       return {head, rows};
-    }
 
+    }
+const FILTER_KEY = 'pontaj_filters_v1';
+
+function loadFilters(){
+  try{
+    const f = JSON.parse(localStorage.getItem(FILTER_KEY) || '{}');
+    if (f.luna) ddlLuna.value = f.luna;
+    if (f.tura) ddlTura.value = f.tura;
+    if (typeof f.nume === 'string') txtNume.value = f.nume;
+  }catch{}
+}
+function saveFilters(){
+  localStorage.setItem(FILTER_KEY, JSON.stringify({
+    luna: ddlLuna.value,
+    tura: ddlTura.value,
+    nume: txtNume.value
+  }));
+}
+loadFilters();
+ddlLuna.addEventListener('change', saveFilters);
+ddlTura.addEventListener('change', saveFilters);
+txtNume.addEventListener('input', saveFilters);
+
+// dacă vrei să reîncarci tabelul automat când schimbi filtrele:
+ddlLuna.addEventListener('change', incarcaAdmin);
+ddlTura.addEventListener('change', incarcaAdmin);
+txtNume.addEventListener('input', ()=>{ clearTimeout(window._fDelay); window._fDelay=setTimeout(incarcaAdmin, 300); });
     // ============ EXPORT XLSX ============
     window.exportXLSXAdmin = async function(){
   const {head, rows} = getAdminTableData();
@@ -1175,6 +1253,12 @@ window.exportPDFAdmin = async function(){
       await incarcaAngajatiSiConstruieste();
       await prefillPontaj(1); await prefillPontaj(2);
     };
+    window.addEventListener('keydown', (e)=>{
+  if (e.target && ['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName)) return;
+  if (e.key.toLowerCase()==='r') incarcaAdmin();
+  if (e.key.toLowerCase()==='e') exportXLSXAdmin && exportXLSXAdmin();
+    });
+
   </script>
 
   <!-- ExcelJS + FileSaver pentru XLSX -->
@@ -1193,4 +1277,3 @@ window.exportPDFAdmin = async function(){
   </datalist>
 </body>
 </html>
-
