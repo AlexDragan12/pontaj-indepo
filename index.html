@@ -252,6 +252,10 @@ td.total{ font-weight:700; background: #102a42 }
   background:var(--brand,#2563eb); color:#fff; font-size:12px; font-weight:700;
 }
 .badge-btn:hover{ filter:brightness(1.06) }
+@media print { 
+  .badge-btn, .no-export { display: none !important; }
+}
+body.exporting .badge-btn, body.exporting .no-export { display: none !important; }
   </style>
 </head>
 <body>
@@ -885,7 +889,7 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, m => (
       const nameCell = `
   <td class="name name-cell">
     <span>${esc(p.nume)}</span>
-    <button class="badge-btn" data-nume="${esc(p.nume)}"
+    <button class="badge-btn no-export" data-nume="${esc(p.nume)}"
             onclick="printBadge(this.dataset.nume)" title="Tipărește badge">🎟 Tipărește</button>
   </td>
 `;
