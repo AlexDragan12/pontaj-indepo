@@ -35,4 +35,7 @@ self.addEventListener("fetch", (e) => {
   // altfel: network-first cu fallback din cache
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
+self.addEventListener('install', () => self.skipWaiting());
+self.addEventListener('activate', e => e.waitUntil(clients.claim()));
+
 
