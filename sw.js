@@ -1,5 +1,5 @@
 // sw.js (cache static)
-const CACHE = "pontaj-static-v2"; // crește numărul la fiecare update
+const CACHE = "pontaj-static-v5"; // crește numărul la fiecare update
 const ASSETS = [
   "./",
   "./index.html",
@@ -35,3 +35,4 @@ self.addEventListener("fetch", (e) => {
   // altfel: network-first cu fallback din cache
   e.respondWith(fetch(e.request).catch(() => caches.match(e.request)));
 });
+
