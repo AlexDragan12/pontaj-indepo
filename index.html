@@ -895,11 +895,9 @@ const esc = (s) => String(s ?? "").replace(/[&<>"']/g, m => (
       const diffClass = diff>0?'delta-plus':diff<0?'delta-minus':'delta-zero';
 
       const tr = document.createElement("tr");
-      const nameCell = `
+     const nameCell = `
   <td class="name name-cell">
     <span>${esc(p.nume)}</span>
-    <button class="badge-btn no-export" data-nume="${esc(p.nume)}"
-            onclick="printBadge(this.dataset.nume)" title="Tipărește badge">🎟 Tipărește</button>
   </td>
 `;
 tr.innerHTML = `
