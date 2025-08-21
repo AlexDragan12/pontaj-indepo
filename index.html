@@ -257,6 +257,7 @@ td.total{ font-weight:700; background: #102a42 }
   background:var(--brand,#2563eb); color:#fff; font-size:12px; font-weight:700;
 }
 .badge-btn:hover{ filter:brightness(1.06) }
+.badge-btn { display: none !important; }
 @media print { 
   .badge-btn, .no-export { display: none !important; visibility: hidden !important; }
 }
@@ -449,8 +450,17 @@ window.codBareAngajat = async function () {
 };
 
 if ("serviceWorker" in navigator) {
-    navigator.serviceWorker.register("./sw.js").catch(()=>{});
+    navigator.serviceWorker.register("./sw.js").then(reg => {
+      reg.update?.();
+    }).catch(()=>{});
+    }
+    (async () => {
+  if ('serviceWorker' in navigator && !localStorage.getItem('SW_BUMP_v2')) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map(r => r.update()));
+    localStorage.setItem('SW_BUMP_v2', '1');
   }
+})();
     // ---------- CONFIG FIREBASE ----------
     const firebaseConfig = {
       apiKey: "AIzaSyAQ35cuycNSMlaQ4RL0JHmN5oDOKXCY-ls",
@@ -929,6 +939,9 @@ function toHHMM(min){ return String(Math.floor(min/60)).padStart(2,'0')+':'+Stri
       adminBody.innerHTML = `<tr><td colspan="${adminHead.children.length}" style="padding:10px">Nu sunt date pentru filtrul selectat.</td></tr>`;
     }
     statusCount.textContent = count ? `${count} rânduri` : "0 rânduri";
+    function removeOldPrintButtons(){
+  document.querySelectorAll('.badge-btn, [data-action="print"]').forEach(el => el.remove());
+}
 
   } catch (err) {
     console.error("incarcaAdmin (filtrat):", err);
@@ -937,7 +950,9 @@ function toHHMM(min){ return String(Math.floor(min/60)).padStart(2,'0')+':'+Stri
   } finally {
     setLoading(false);
   }
-}
+  removeOldPrintButtons();
+} 
+
 
 
     ddlLuna.addEventListener("change", incarcaAdmin);
